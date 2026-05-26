@@ -110,6 +110,10 @@ export function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+export function validateUsername(username: string): boolean {
+  return /^[A-Za-z0-9_]{4,20}$/.test(username.trim())
+}
+
 export function validatePassword(password: string): boolean {
   return password.length >= 6
 }

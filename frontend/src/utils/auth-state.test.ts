@@ -7,6 +7,7 @@ import {
   setToken,
   removeToken,
 } from './auth'
+import { validateUsername } from './utils'
 
 const storage = new Map<string, string>()
 
@@ -45,5 +46,16 @@ describe('auth storage', () => {
     setUsername('user_1234')
     removeUsername()
     expect(getUsername()).toBeNull()
+  })
+})
+
+describe('username validation', () => {
+  it('accepts letters numbers and underscores between 4 and 20 chars', () => {
+    expect(validateUsername('user_1234')).toBe(true)
+  })
+
+  it('rejects short values and invalid chars', () => {
+    expect(validateUsername('abc')).toBe(false)
+    expect(validateUsername('user-name')).toBe(false)
   })
 })

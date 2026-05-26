@@ -93,7 +93,7 @@ function parseDownloadFileName(contentDisposition?: string) {
 export interface AuthPayload {
   success?: boolean
   token: string
-  phone: string
+  username: string
   nickname?: string
   role?: 'user' | 'admin'
 }
@@ -105,7 +105,7 @@ export interface SendCodePayload {
 }
 
 export interface ProfileInfo {
-  phone: string
+  username: string
   nickname: string
   contact?: string
   role?: 'user' | 'admin'
@@ -318,8 +318,8 @@ export interface PaginatedListResponse<T> {
 export const authApi = {
   sendCode: (account: string, captchaToken: string) => request<SendCodePayload>({ method: 'POST', url: '/auth/send-code', data: { account, captchaToken } }),
   loginByCode: (account: string, code: string, captchaToken: string) => request<AuthPayload>({ method: 'POST', url: '/auth/login', data: { account, code, captchaToken } }),
-  loginByPassword: (account: string, password: string, captchaToken: string) => request<AuthPayload>({ method: 'POST', url: '/auth/login-password', data: { account, password, captchaToken } }),
-  register: (account: string, code: string, password: string, captchaToken: string) => request<AuthPayload>({ method: 'POST', url: '/auth/register', data: { account, code, password, captchaToken } }),
+  loginByPassword: (username: string, password: string, captchaToken: string) => request<AuthPayload>({ method: 'POST', url: '/auth/login-password', data: { username, password, captchaToken } }),
+  register: (username: string, password: string, captchaToken: string) => request<AuthPayload>({ method: 'POST', url: '/auth/register', data: { username, password, captchaToken } }),
   verify: () => request({ method: 'GET', url: '/auth/verify' }),
   updatePassword: (newPassword: string) => request({ method: 'POST', url: '/auth/update-password', data: { newPassword } }),
 }
