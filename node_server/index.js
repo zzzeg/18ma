@@ -12,6 +12,7 @@ const {
   isValidUsername,
   buildDefaultNickname,
   signUserTokenPayload,
+  normalizeRegisterPayload,
 } = require('./auth-helpers');
 const { registerAuthRoutes } = require('./routes/auth');
 const { createRedeemHelpers, registerRedeemRoutes } = require('./routes/redeem');
@@ -839,14 +840,10 @@ registerAuthRoutes({
   app,
   authenticateToken,
   User,
-  VerificationCode,
-  Op,
-  resolveAccountValue,
-  isValidAccount,
+  normalizeUsername,
+  isValidUsername,
+  normalizeRegisterPayload,
   ensureTurnstile,
-  getSendCodeCooldownRemaining,
-  generateCode,
-  setSendCodeCooldown,
   hashPassword,
   buildDefaultNickname,
   signUserToken,

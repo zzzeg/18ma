@@ -489,12 +489,24 @@ async function ensureColumn(tableName, columnName, definition) {
   }
 }
 
+async function ensureUniqueIndex(tableName, indexName, fields) {
+  const existingIndexes = await queryInterface.showIndex(tableName);
+  if (existingIndexes.some((index) => index.name === indexName)) {
+    return;
+  }
+
+  await queryInterface.addIndex(tableName, fields, {
+    unique: true,
+    name: indexName
+  });
+}
+
 async function ensureSchemaUpgrades() {
   await ensureColumn('users', 'username', {
     type: DataTypes.STRING,
-    allowNull: true,
-    unique: true
+    allowNull: true
   });
+  await ensureUniqueIndex('users', 'users_username_unique', ['username']);
 
   await ensureColumn('users', 'role', {
     type: DataTypes.STRING,

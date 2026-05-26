@@ -29,9 +29,17 @@ function signUserTokenPayload(user) {
   };
 }
 
+function normalizeRegisterPayload(payload) {
+  return {
+    username: normalizeUsername(payload?.username),
+    password: String(payload?.password || ''),
+  };
+}
+
 module.exports = {
   normalizeUsername,
   isValidUsername,
   buildDefaultNickname,
   signUserTokenPayload,
+  normalizeRegisterPayload,
 };
