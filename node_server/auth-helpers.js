@@ -21,8 +21,17 @@ function buildDefaultNickname() {
   return `用户${randomNicknameSuffix(6)}`;
 }
 
+function signUserTokenPayload(user) {
+  return {
+    userId: user.id,
+    username: user.username,
+    role: user.role || 'user',
+  };
+}
+
 module.exports = {
   normalizeUsername,
   isValidUsername,
   buildDefaultNickname,
+  signUserTokenPayload,
 };

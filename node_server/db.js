@@ -51,9 +51,14 @@ const queryInterface = sequelize.getQueryInterface();
 
 // User Model
 const User = sequelize.define('User', {
-  phone: {
+  username: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique: true
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
     unique: true
   },
   password: {
@@ -485,6 +490,12 @@ async function ensureColumn(tableName, columnName, definition) {
 }
 
 async function ensureSchemaUpgrades() {
+  await ensureColumn('users', 'username', {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  });
+
   await ensureColumn('users', 'role', {
     type: DataTypes.STRING,
     allowNull: false,
@@ -518,7 +529,14 @@ async function ensureDefaultData() {
 
   const adminCount = await User.count({ where: { role: 'admin' } });
   if (adminCount === 0) {
-    const firstUser = await User.findOne({ order: [['createdAt', 'ASC']] });
+    const firstUser = await User.findOne({
+      where: {
+        username: {
+          [Sequelize.Op.ne]: null
+        }
+      },
+      order: [['createdAt', 'ASC']]
+    });
     if (firstUser) {
       firstUser.role = 'admin';
       await firstUser.save();

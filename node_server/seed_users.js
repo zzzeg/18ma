@@ -7,11 +7,8 @@ async function seedUsers() {
     console.log('Connection established.');
 
     const users = [
-      { phone: '13800138000' },
-      { phone: '13900139000' },
-      { phone: '15000150000' },
-      { phone: '18000180000' },
-      { phone: '13600136000' }
+      { username: 'admin_seed_01', nickname: '用户A1B2C3' },
+      { username: 'seller_seed_01', nickname: '用户D4E5F6' }
     ];
 
     console.log('Seeding users...');
@@ -19,17 +16,17 @@ async function seedUsers() {
     for (const userData of users) {
       try {
         const [user, created] = await User.findOrCreate({
-          where: { phone: userData.phone },
-          defaults: { lastLogin: new Date() }
+          where: { username: userData.username },
+          defaults: { nickname: userData.nickname, lastLogin: new Date() }
         });
         
         if (created) {
-          console.log(`Created user: ${user.phone}`);
+          console.log(`Created user: ${user.username}`);
         } else {
-          console.log(`User already exists: ${user.phone}`);
+          console.log(`User already exists: ${user.username}`);
         }
       } catch (err) {
-        console.error(`Failed to create user ${userData.phone}:`, err.message);
+        console.error(`Failed to create user ${userData.username}:`, err.message);
       }
     }
 

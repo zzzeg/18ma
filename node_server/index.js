@@ -7,6 +7,12 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 const { ALLOWED_DURATION_CODES, REDEEM_DURATION_VALUES } = require('./redeem-config');
+const {
+  normalizeUsername,
+  isValidUsername,
+  buildDefaultNickname,
+  signUserTokenPayload,
+} = require('./auth-helpers');
 const { registerAuthRoutes } = require('./routes/auth');
 const { createRedeemHelpers, registerRedeemRoutes } = require('./routes/redeem');
 const { registerWalletRoutes } = require('./routes/wallet');
@@ -343,8 +349,8 @@ function buildPaginatedResult(items, page, limit) {
 }
 
 async function resolveAuthUser(req) {
-  if (!req.user?.phone) return null;
-  return User.findOne({ where: { phone: req.user.phone } });
+  if (!req.user?.userId) return null;
+  return User.findByPk(req.user.userId);
 }
 
 async function requireAuthUser(req, res) {
@@ -362,14 +368,14 @@ async function resolveOptionalAuthUser(req) {
   if (!token) return null;
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    return User.findOne({ where: { phone: payload.phone } });
+    return payload?.userId ? User.findByPk(payload.userId) : null;
   } catch {
     return null;
   }
 }
 
 function signUserToken(user) {
-  return jwt.sign({ phone: user.phone, role: user.role || 'user' }, JWT_SECRET);
+  return jwt.sign(signUserTokenPayload(user), JWT_SECRET);
 }
 
 function verifyJwtToken(token) {
@@ -592,21 +598,6 @@ async function ensureTurnstile(req, res, scene = '当前操作') {
 
   res.status(400).json({ error: result.error || `${scene}未通过人机验证` });
   return false;
-}
-
-function buildDefaultNickname(account) {
-  const normalized = String(account || '').trim();
-  if (!normalized) return 'User';
-
-  if (isEmailAccount(normalized)) {
-    const prefix = normalized
-      .split('@')[0]
-      .replace(/[^\w\u4e00-\u9fa5-]/g, '')
-      .slice(0, 16);
-    return prefix || 'User';
-  }
-
-  return `User${normalized.slice(-4) || '0000'}`;
 }
 
 function formatThreadTime(value) {
