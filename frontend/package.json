@@ -8,7 +8,8 @@
     "build": "vue-tsc -b && vite build --mode production",
     "build:dev": "vue-tsc -b && vite build --mode development",
     "build:prod": "vue-tsc -b && vite build --mode production",
-    "preview": "vite preview --mode production"
+    "preview": "vite preview --mode production",
+    "test": "vitest run"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -22,9 +23,11 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
     "@vue/tsconfig": "^0.7.0",
+    "jsdom": "^26.1.0",
     "sass": "^1.94.2",
     "typescript": "~5.8.3",
     "vite": "^6.3.5",
+    "vitest": "^3.2.4",
     "vue-tsc": "^2.2.8"
   }
 }

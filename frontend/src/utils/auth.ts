@@ -1,4 +1,5 @@
 const TOKEN_KEY = 'token'
+const USERNAME_KEY = 'username'
 const PHONE_KEY = 'phone'
 const NICKNAME_KEY = 'nickname'
 const ROLE_KEY = 'role'
@@ -13,6 +14,18 @@ export function setToken(token: string): void {
 
 export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY)
+}
+
+export function getUsername(): string | null {
+  return localStorage.getItem(USERNAME_KEY)
+}
+
+export function setUsername(username: string): void {
+  localStorage.setItem(USERNAME_KEY, username)
+}
+
+export function removeUsername(): void {
+  localStorage.removeItem(USERNAME_KEY)
 }
 
 export function getPhone(): string | null {
@@ -52,5 +65,5 @@ export function removeRole(): void {
 }
 
 export function isAuthenticated(): boolean {
-  return !!getToken() && !!getPhone()
+  return !!getToken() && !!(getUsername() || getPhone())
 }

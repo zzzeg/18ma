@@ -7,7 +7,7 @@
     "start": "npm run db:up && node index.js",
     "dev": "npm run db:up && node -e \"process.env.NODE_ENV='development'; require('./index.js')\"",
     "start:prod": "npm run db:up && node -e \"process.env.NODE_ENV='production'; require('./index.js')\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test --test-isolation=none"
   },
   "keywords": [],
   "author": "",
