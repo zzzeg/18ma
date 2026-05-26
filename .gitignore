@@ -1,0 +1,40 @@
+# Ignore everything by default. Only explicitly unignore project code and deploy config.
+*
+
+!.gitignore
+!frontend/
+!frontend/**
+!node_server/
+!node_server/**
+!.github/
+!.github/**
+!docker-compose.yml
+!README.md
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.tsbuildinfo
+frontend/.env
+frontend/.env.*
+
+# Backend
+node_server/node_modules/
+node_server/data/
+node_server/uploads/
+node_server/*.log
+node_server/*.log.*
+node_server/.env
+node_server/.env.*
+
+# Local/editor/system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local backups and design references
+.backup/
+backups/
+8maUI/

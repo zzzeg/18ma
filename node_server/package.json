@@ -1,0 +1,26 @@
+{
+  "name": "node_server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "db:up": "docker compose -f \"D:/git/docker-compose_local_mysql.yml\" up -d mysql",
+    "start": "npm run db:up && node index.js",
+    "dev": "npm run db:up && node -e \"process.env.NODE_ENV='development'; require('./index.js')\"",
+    "start:prod": "npm run db:up && node -e \"process.env.NODE_ENV='production'; require('./index.js')\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "body-parser": "^2.2.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.15.3",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^6.0.1"
+  }
+}
