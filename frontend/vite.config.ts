@@ -9,9 +9,9 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined
           const normalizedId = id.replace(/\\/g, '/')
-          if (normalizedId.includes('/@element-plus/icons-vue/')) return 'element-icons'
-          if (normalizedId.includes('/element-plus/es/components/')) return 'element-plus-components'
-          if (normalizedId.includes('/element-plus/')) return 'element-plus-core'
+          if (normalizedId.includes('/@element-plus/icons-vue/') || normalizedId.includes('/element-plus/')) {
+            return 'element-plus'
+          }
           if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) return 'vue-vendor'
           return 'vendor'
         },
