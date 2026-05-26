@@ -46,6 +46,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
     container_name: 18ma-frontend
     restart: unless-stopped
     depends_on:
