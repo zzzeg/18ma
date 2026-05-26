@@ -1,78 +1,27 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authApi } from '../api/services'
 import TurnstileWidget from '../components/TurnstileWidget.vue'
 import { useAppStore } from '../stores/app'
-import { validateEmail, validatePassword } from '../utils/utils'
+import { validatePassword, validateUsername } from '../utils/utils'
 
 const router = useRouter()
 const store = useAppStore()
-const sending = ref(false)
 const loading = ref(false)
-const sendCooldown = ref(0)
 const captchaToken = ref('')
 const captchaRef = ref<InstanceType<typeof TurnstileWidget> | null>(null)
-const form = ref({ email: '', code: '', password: '', confirmPassword: '' })
-let cooldownTimer: number | null = null
+const form = ref({ username: '', password: '', confirmPassword: '' })
 
 function resetCaptcha() {
   captchaToken.value = ''
   captchaRef.value?.reset()
 }
 
-function startCooldown(seconds = 60) {
-  if (cooldownTimer !== null) {
-    window.clearInterval(cooldownTimer)
-  }
-  sendCooldown.value = seconds
-  cooldownTimer = window.setInterval(() => {
-    if (sendCooldown.value <= 1) {
-      sendCooldown.value = 0
-      if (cooldownTimer !== null) {
-        window.clearInterval(cooldownTimer)
-        cooldownTimer = null
-      }
-      return
-    }
-    sendCooldown.value -= 1
-  }, 1000)
-}
-
-async function sendCode() {
-  if (!validateEmail(form.value.email)) {
-    ElMessage.warning('请输入正确的邮箱地址')
-    return
-  }
-  if (!captchaToken.value) {
-    ElMessage.warning('请先完成人机验证')
-    return
-  }
-  if (sendCooldown.value > 0) {
-    ElMessage.warning(`请 ${sendCooldown.value} 秒后再试`)
-    return
-  }
-  sending.value = true
-  try {
-    const result = await authApi.sendCode(form.value.email.trim(), captchaToken.value)
-    startCooldown(60)
-    ElMessage.success(result.debugCode ? `验证码已发送，开发环境验证码：${result.debugCode}` : '验证码已发送，请前往邮箱查收')
-  } catch (error: any) {
-    ElMessage.error(error.error || '发送失败')
-  } finally {
-    sending.value = false
-    resetCaptcha()
-  }
-}
-
 async function submit() {
-  if (!validateEmail(form.value.email)) {
-    ElMessage.warning('请输入正确的邮箱地址')
-    return
-  }
-  if (!form.value.code.trim()) {
-    ElMessage.warning('请输入邮箱验证码')
+  if (!validateUsername(form.value.username)) {
+    ElMessage.warning('用户名需为 4-20 位字母、数字或下划线')
     return
   }
   if (!validatePassword(form.value.password)) {
@@ -90,8 +39,8 @@ async function submit() {
 
   loading.value = true
   try {
-    const result = await authApi.register(form.value.email.trim(), form.value.code.trim(), form.value.password, captchaToken.value)
-    store.login(result.token, result.phone, result.nickname, result.role || 'user')
+    const result = await authApi.register(form.value.username.trim(), form.value.password, captchaToken.value)
+    store.login(result.token, result.username, result.nickname, result.role || 'user')
     ElMessage.success('注册成功')
     router.push('/dashboard')
   } catch (error: any) {
@@ -101,12 +50,6 @@ async function submit() {
     resetCaptcha()
   }
 }
-
-onBeforeUnmount(() => {
-  if (cooldownTimer !== null) {
-    window.clearInterval(cooldownTimer)
-  }
-})
 </script>
 
 <template>
@@ -115,16 +58,10 @@ onBeforeUnmount(() => {
       <div class="auth-shell__copy auth-shell__copy--light">
         <span>RegCode Admin</span>
         <h1>创建分享者账户</h1>
-        <p>完成邮箱验证后即可进入后台，管理资源、卡密与交付记录。</p>
+        <p>创建用户名账号后即可进入后台，管理资源、卡密与交付记录。</p>
       </div>
       <div class="auth-shell__form">
-        <el-input v-model="form.email" placeholder="邮箱地址" />
-        <div class="code-row">
-          <el-input v-model="form.code" placeholder="邮箱验证码" />
-          <el-button plain :loading="sending" :disabled="sendCooldown > 0" @click="sendCode">
-            {{ sendCooldown > 0 ? `${sendCooldown}s` : '获取验证码' }}
-          </el-button>
-        </div>
+        <el-input v-model="form.username" placeholder="用户名（4-20 位字母、数字或下划线）" />
         <el-input v-model="form.password" type="password" placeholder="设置密码" show-password />
         <el-input v-model="form.confirmPassword" type="password" placeholder="重复密码" show-password />
         <TurnstileWidget ref="captchaRef" v-model="captchaToken" action="register" />
@@ -223,12 +160,6 @@ onBeforeUnmount(() => {
       font-weight: 600;
     }
   }
-}
-
-.code-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
 }
 
 .foot-link {

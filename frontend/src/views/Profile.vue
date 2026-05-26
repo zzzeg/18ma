@@ -4,7 +4,7 @@ import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { authApi, profileApi } from '../api/services'
 import { useAppStore } from '../stores/app'
-import { initials, maskPhone } from '../utils/utils'
+import { initials, validatePassword } from '../utils/utils'
 
 type ProfileSection = 'info' | 'preferences' | 'security' | 'account'
 
@@ -20,7 +20,6 @@ interface SecurityLogRow {
 
 interface StoredProfileState {
   avatar: string
-  email: string
   contactPhone: string
   bio: string
   preferences: {
@@ -30,7 +29,6 @@ interface StoredProfileState {
   }
   securityQuestion: string
   securityAnswer: string
-  backupEmail: string
   logs: SecurityLogRow[]
 }
 
@@ -42,7 +40,6 @@ const loading = ref(false)
 const savingProfile = ref(false)
 const passwordLoading = ref(false)
 const passwordDialogVisible = ref(false)
-const backupEmailDialogVisible = ref(false)
 const securityQuestionDialogVisible = ref(false)
 const avatarInput = ref<HTMLInputElement | null>(null)
 const activeSection = ref<ProfileSection>('info')
@@ -52,10 +49,8 @@ const avatarUrl = ref('')
 const securityLogs = ref<SecurityLogRow[]>([])
 const securityQuestion = ref('')
 const securityAnswer = ref('')
-const backupEmail = ref('')
 const profileForm = ref({
   nickname: '',
-  email: '',
   contactPhone: '',
   bio: '',
 })
@@ -67,9 +62,6 @@ const preferences = ref({
 const passwordForm = ref({
   password: '',
   confirmPassword: '',
-})
-const backupEmailForm = ref({
-  email: '',
 })
 const securityQuestionForm = ref({
   question: '',
@@ -95,31 +87,26 @@ const preferenceItems = computed(() => [
 ])
 
 const avatarText = computed(() => initials(profileForm.value.nickname || store.nickname || 'RC'))
-const profileStorageKey = computed(() => `rc_profile_center_${store.phone || 'guest'}`)
-const isEmailLoginAccount = computed(() => String(store.phone || '').includes('@'))
-const maskedLoginAccount = computed(() => {
-  const account = String(store.phone || '').trim()
-  if (!account) return '--'
-  return isEmailLoginAccount.value ? maskEmail(account) : maskPhone(account)
-})
+const profileStorageKey = computed(() => `rc_profile_center_${store.username || 'guest'}`)
 const pagedSecurityLogs = computed(() => {
   const start = (logCurrentPage.value - 1) * logPageSize.value
   return securityLogs.value.slice(start, start + logPageSize.value)
-})
-const maskedBackupEmail = computed(() => {
-  const value = backupEmail.value || profileForm.value.email
-  return maskEmail(value)
 })
 const accountRows = computed(() => [
   {
     key: 'password',
     title: '账户密码',
-    description: '当前密码强度：强',
+    description: '已设置登录密码，可随时更新',
   },
   {
-    key: 'phone',
-    title: isEmailLoginAccount.value ? '登录邮箱' : '密保手机',
-    description: `${isEmailLoginAccount.value ? '当前登录邮箱' : '已经绑定手机'}：${maskedLoginAccount.value}`,
+    key: 'username',
+    title: '登录用户名',
+    description: store.username || '--',
+  },
+  {
+    key: 'contact',
+    title: '联系方式',
+    description: profileForm.value.contactPhone.trim() || '未填写',
   },
   {
     key: 'question',
@@ -127,13 +114,6 @@ const accountRows = computed(() => [
     description: securityQuestion.value
       ? `已设置密保问题：${securityQuestion.value}`
       : '未设置密保问题，密保问题可有效保护账户安全',
-  },
-  {
-    key: 'email',
-    title: '备用邮箱',
-    description: backupEmail.value || profileForm.value.email
-      ? `已绑定邮箱：${maskedBackupEmail.value}`
-      : '未设置备用邮箱，建议尽快补充',
   },
 ])
 
@@ -191,12 +171,10 @@ function buildLog(detail: string, time = formatLogTime()): SecurityLogRow {
 }
 
 function buildDefaultState(contactFallback = ''): StoredProfileState {
-  const bindLogDetail = isEmailLoginAccount.value ? '绑定了邮箱账号' : '绑定了手机号码'
   return {
     avatar: '',
-    email: '',
-    contactPhone: contactFallback || store.phone || '',
-    bio: '一个热爱开源的前端工程师',
+    contactPhone: contactFallback || store.contact || '',
+    bio: '这个用户还没有填写个人简介',
     preferences: {
       accountPassword: true,
       systemMessage: true,
@@ -204,10 +182,9 @@ function buildDefaultState(contactFallback = ''): StoredProfileState {
     },
     securityQuestion: '',
     securityAnswer: '',
-    backupEmail: '',
     logs: [
       buildLog('账户登录'),
-      buildLog(bindLogDetail, formatLogTime(new Date(Date.now() - 24 * 60 * 60 * 1000))),
+      buildLog('初始化账号资料', formatLogTime(new Date(Date.now() - 24 * 60 * 60 * 1000))),
     ],
   }
 }
@@ -220,7 +197,6 @@ function readStoredState(contactFallback = ''): StoredProfileState {
     const parsed = JSON.parse(raw) as Partial<StoredProfileState>
     return {
       avatar: parsed.avatar || defaults.avatar,
-      email: parsed.email || '',
       contactPhone: parsed.contactPhone || defaults.contactPhone,
       bio: parsed.bio || defaults.bio,
       preferences: {
@@ -230,7 +206,6 @@ function readStoredState(contactFallback = ''): StoredProfileState {
       },
       securityQuestion: parsed.securityQuestion || '',
       securityAnswer: parsed.securityAnswer || '',
-      backupEmail: parsed.backupEmail || '',
       logs: Array.isArray(parsed.logs) && parsed.logs.length ? parsed.logs : defaults.logs,
     }
   } catch {
@@ -241,13 +216,11 @@ function readStoredState(contactFallback = ''): StoredProfileState {
 function persistStoredState() {
   const payload: StoredProfileState = {
     avatar: avatarUrl.value,
-    email: profileForm.value.email.trim(),
     contactPhone: profileForm.value.contactPhone.trim(),
     bio: profileForm.value.bio.trim(),
     preferences: { ...preferences.value },
     securityQuestion: securityQuestion.value.trim(),
     securityAnswer: securityAnswer.value.trim(),
-    backupEmail: backupEmail.value.trim(),
     logs: [...securityLogs.value],
   }
   window.localStorage.setItem(profileStorageKey.value, JSON.stringify(payload))
@@ -290,14 +263,6 @@ function handleAvatarChange(event: Event) {
   input.value = ''
 }
 
-function maskEmail(value: string) {
-  if (!value || !value.includes('@')) return value || '未绑定'
-  const [name, domain] = value.split('@')
-  if (!name || !domain) return value
-  if (name.length <= 2) return `${name[0] || '*'}***@${domain}`
-  return `${name.slice(0, 4)}***@${domain}`
-}
-
 async function loadProfile() {
   loading.value = true
   try {
@@ -305,16 +270,13 @@ async function loadProfile() {
     store.applyProfile(result)
     const stored = readStoredState(result.contact || '')
     profileForm.value.nickname = result.nickname || ''
-    profileForm.value.email = stored.email || ''
-    profileForm.value.contactPhone = stored.contactPhone || result.contact || store.phone || ''
+    profileForm.value.contactPhone = stored.contactPhone || result.contact || store.contact || ''
     profileForm.value.bio = stored.bio
     avatarUrl.value = stored.avatar
     preferences.value = { ...stored.preferences }
     securityQuestion.value = stored.securityQuestion
     securityAnswer.value = stored.securityAnswer
-    backupEmail.value = stored.backupEmail || stored.email || ''
     securityLogs.value = [...stored.logs]
-    backupEmailForm.value.email = backupEmail.value
     securityQuestionForm.value.question = securityQuestion.value
     securityQuestionForm.value.answer = securityAnswer.value
     persistStoredState()
@@ -330,9 +292,8 @@ async function savePersonalInfo() {
     ElMessage.warning('请输入昵称')
     return
   }
-
-  if (profileForm.value.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.value.email.trim())) {
-    ElMessage.warning('请输入正确的邮箱地址')
+  if (!profileForm.value.contactPhone.trim()) {
+    ElMessage.warning('请输入联系方式')
     return
   }
 
@@ -340,7 +301,7 @@ async function savePersonalInfo() {
   try {
     const payload = {
       nickname: profileForm.value.nickname.trim(),
-      contact: profileForm.value.contactPhone.trim() || profileForm.value.email.trim(),
+      contact: profileForm.value.contactPhone.trim(),
     }
     const result = await profileApi.updateProfile(payload)
     store.applyProfile(result)
@@ -365,11 +326,7 @@ function openPasswordDialog() {
 }
 
 async function submitPasswordUpdate() {
-  if (!passwordForm.value.password.trim()) {
-    ElMessage.warning('请输入新密码')
-    return
-  }
-  if (passwordForm.value.password.trim().length < 6) {
+  if (!validatePassword(passwordForm.value.password.trim())) {
     ElMessage.warning('密码至少 6 位')
     return
   }
@@ -389,24 +346,6 @@ async function submitPasswordUpdate() {
   } finally {
     passwordLoading.value = false
   }
-}
-
-function openBackupEmailDialog() {
-  backupEmailForm.value.email = backupEmail.value || profileForm.value.email
-  backupEmailDialogVisible.value = true
-}
-
-function submitBackupEmail() {
-  const nextEmail = backupEmailForm.value.email.trim()
-  if (nextEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
-    ElMessage.warning('请输入正确的备用邮箱地址')
-    return
-  }
-  backupEmail.value = nextEmail
-  persistStoredState()
-  pushSecurityLog('更新备用邮箱')
-  backupEmailDialogVisible.value = false
-  ElMessage.success('备用邮箱已更新')
 }
 
 function openSecurityQuestionDialog() {
@@ -433,17 +372,17 @@ function handleAccountAction(key: string) {
     openPasswordDialog()
     return
   }
-  if (key === 'phone') {
+  if (key === 'username') {
+    ElMessage.info('用户名暂不支持修改')
+    return
+  }
+  if (key === 'contact') {
     changeSection('info')
-    ElMessage.info('请在个人信息里调整展示联系电话')
+    ElMessage.info('请在个人信息里调整联系方式')
     return
   }
   if (key === 'question') {
     openSecurityQuestionDialog()
-    return
-  }
-  if (key === 'email') {
-    openBackupEmailDialog()
   }
 }
 
@@ -480,14 +419,14 @@ onMounted(() => {
           </div>
 
           <el-form class="profile-form" label-position="top">
+            <el-form-item label="用户名">
+              <el-input :model-value="store.username || '--'" disabled />
+            </el-form-item>
             <el-form-item label="昵称">
               <el-input v-model="profileForm.nickname" placeholder="请输入昵称" />
             </el-form-item>
-            <el-form-item label="邮箱">
-              <el-input v-model="profileForm.email" placeholder="请输入邮箱地址" />
-            </el-form-item>
-            <el-form-item label="联系电话">
-              <el-input v-model="profileForm.contactPhone" placeholder="请输入联系电话" />
+            <el-form-item label="联系方式">
+              <el-input v-model="profileForm.contactPhone" placeholder="请输入联系方式" />
             </el-form-item>
             <el-form-item label="简介">
               <el-input v-model="profileForm.bio" type="textarea" :rows="5" placeholder="请输入个人简介" />
@@ -551,7 +490,7 @@ onMounted(() => {
                 <strong>{{ item.title }}</strong>
                 <p>{{ item.description }}</p>
               </div>
-              <button class="manage-item__action" @click="handleAccountAction(item.key)">修改</button>
+              <button class="manage-item__action" @click="handleAccountAction(item.key)">处理</button>
             </article>
           </div>
         </section>
@@ -566,16 +505,6 @@ onMounted(() => {
       <template #footer>
         <el-button @click="passwordDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="passwordLoading" @click="submitPasswordUpdate">保存</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="backupEmailDialogVisible" title="备用邮箱" width="420px">
-      <div class="dialog-form">
-        <el-input v-model="backupEmailForm.email" placeholder="请输入备用邮箱地址" />
-      </div>
-      <template #footer>
-        <el-button @click="backupEmailDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitBackupEmail">保存</el-button>
       </template>
     </el-dialog>
 
@@ -726,6 +655,7 @@ onMounted(() => {
       margin: 8px 0 0;
       color: var(--rc-text-soft);
       line-height: 1.8;
+      word-break: break-all;
     }
   }
 

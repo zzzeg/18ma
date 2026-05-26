@@ -5,30 +5,23 @@ import { ElMessage } from 'element-plus'
 import { authApi } from '../api/services'
 import TurnstileWidget from '../components/TurnstileWidget.vue'
 import { useAppStore } from '../stores/app'
-import { validateEmail, validatePassword, validatePhone } from '../utils/utils'
+import { validatePassword, validateUsername } from '../utils/utils'
 
 const router = useRouter()
 const store = useAppStore()
 const loading = ref(false)
 const captchaToken = ref('')
 const captchaRef = ref<InstanceType<typeof TurnstileWidget> | null>(null)
-const form = ref({ account: '', password: '' })
+const form = ref({ username: '', password: '' })
 
 function resetCaptcha() {
   captchaToken.value = ''
   captchaRef.value?.reset()
 }
 
-function validateAccountInput(value: string) {
-  const normalized = value.trim()
-  if (!normalized) return false
-  if (normalized.includes('@')) return validateEmail(normalized)
-  return validatePhone(normalized)
-}
-
 async function submit() {
-  if (!validateAccountInput(form.value.account)) {
-    ElMessage.warning('请输入正确的邮箱或手机号')
+  if (!validateUsername(form.value.username)) {
+    ElMessage.warning('用户名需为 4-20 位字母、数字或下划线')
     return
   }
 
@@ -43,8 +36,8 @@ async function submit() {
 
   loading.value = true
   try {
-    const result = await authApi.loginByPassword(form.value.account.trim(), form.value.password, captchaToken.value)
-    store.login(result.token, result.phone, result.nickname, result.role || 'user')
+    const result = await authApi.loginByPassword(form.value.username.trim(), form.value.password, captchaToken.value)
+    store.login(result.token, result.username, result.nickname, result.role || 'user')
     ElMessage.success('登录成功')
     router.push('/dashboard')
   } catch (error: any) {
@@ -65,7 +58,7 @@ async function submit() {
         <p>登录后进入资源管理、卡密管理、订单查询与交付控制台。</p>
       </div>
       <div class="auth-shell__form">
-        <el-input v-model="form.account" placeholder="邮箱 / 手机号" />
+        <el-input v-model="form.username" placeholder="用户名" />
         <el-input v-model="form.password" type="password" placeholder="密码" show-password />
         <TurnstileWidget ref="captchaRef" v-model="captchaToken" action="login" />
         <el-button type="primary" :loading="loading" @click="submit">登录</el-button>

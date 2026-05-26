@@ -124,7 +124,7 @@ onBeforeUnmount(() => {
         <span class="header__avatar">{{ initials(userLabel) }}</span>
         <span class="header__profile-copy">
           <strong>{{ userLabel }}</strong>
-          <small>账号：{{ store.phone || '--' }}</small>
+          <small>账号：{{ store.username || '--' }}</small>
         </span>
       </button>
       <button class="header__logout" @click="logout">

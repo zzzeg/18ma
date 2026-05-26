@@ -201,7 +201,7 @@ onMounted(() => {
         <div class="security-card__value">{{ roleText(store.role) }}</div>
         <div class="security-card__meta">
           <span>登录账号</span>
-          <strong class="mono">{{ store.phone || '--' }}</strong>
+          <strong class="mono">{{ store.username || '--' }}</strong>
         </div>
         <div class="security-card__meta">
           <span>近 7 日兑换</span>
