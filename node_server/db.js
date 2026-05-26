@@ -502,25 +502,28 @@ async function ensureUniqueIndex(tableName, indexName, fields) {
 }
 
 async function ensureSchemaUpgrades() {
-  await ensureColumn('users', 'username', {
+  const userTable = User.getTableName();
+  const paymentRecordTable = PaymentRecord.getTableName();
+
+  await ensureColumn(userTable, 'username', {
     type: DataTypes.STRING,
     allowNull: true
   });
-  await ensureUniqueIndex('users', 'users_username_unique', ['username']);
+  await ensureUniqueIndex(userTable, 'users_username_unique', ['username']);
 
-  await ensureColumn('users', 'role', {
+  await ensureColumn(userTable, 'role', {
     type: DataTypes.STRING,
     allowNull: false,
     defaultValue: 'user'
   });
 
-  await ensureColumn('paymentrecords', 'legacyType', {
+  await ensureColumn(paymentRecordTable, 'legacyType', {
     type: DataTypes.STRING,
     allowNull: false,
     defaultValue: 'payment-history'
   });
 
-  await ensureColumn('paymentrecords', 'legacyMarkedAt', {
+  await ensureColumn(paymentRecordTable, 'legacyMarkedAt', {
     type: DataTypes.DATE,
     allowNull: true
   });
