@@ -1,0 +1,61 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package project
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='frontend/node_modules' \
+            --exclude='frontend/dist' \
+            --exclude='frontend/.vite' \
+            --exclude='node_server/node_modules' \
+            --exclude='node_server/data' \
+            --exclude='node_server/uploads' \
+            --exclude='node_server/*.log' \
+            -czf 18ma-deploy.tar.gz \
+            docker-compose.yml .env.example frontend node_server
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${{ secrets.SERVER_PORT || 22 }}" "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload package
+        run: |
+          scp -i ~/.ssh/deploy_key -P "${{ secrets.SERVER_PORT || 22 }}" \
+            18ma-deploy.tar.gz \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/18ma-deploy.tar.gz"
+
+      - name: Deploy on server
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.SERVER_PORT || 22 }}" \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" << 'EOF'
+              set -e
+              mkdir -p /opt/18ma
+              cd /opt/18ma
+
+              tar -xzf /tmp/18ma-deploy.tar.gz -C /opt/18ma
+
+              if [ ! -f .env ]; then
+                echo "Missing /opt/18ma/.env. Copy /opt/18ma/.env.example to /opt/18ma/.env and set production secrets first."
+                exit 1
+              fi
+
+              docker compose up -d --build
+              docker image prune -f
+          EOF

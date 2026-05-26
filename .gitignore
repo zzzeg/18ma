@@ -9,6 +9,7 @@
 !.github/
 !.github/**
 !docker-compose.yml
+!.env.example
 !README.md
 
 # Frontend
