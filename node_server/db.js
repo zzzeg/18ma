@@ -489,9 +489,41 @@ async function ensureColumn(tableName, columnName, definition) {
   }
 }
 
+function normalizeIndexField(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getIndexFields(index) {
+  if (Array.isArray(index.fields)) {
+    return index.fields
+      .map((field) => normalizeIndexField(field.attribute || field.name || field))
+      .filter(Boolean);
+  }
+  if (index.columnName) return [normalizeIndexField(index.columnName)];
+  return [];
+}
+
+function isSameIndexFields(index, fields) {
+  const actualFields = getIndexFields(index);
+  const expectedFields = fields.map(normalizeIndexField);
+  return actualFields.length === expectedFields.length
+    && expectedFields.every((field, index) => actualFields[index] === field);
+}
+
 async function ensureUniqueIndex(tableName, indexName, fields) {
   const existingIndexes = await queryInterface.showIndex(tableName);
-  if (existingIndexes.some((index) => index.name === indexName)) {
+  const matchingIndexes = existingIndexes.filter((index) => index.unique && isSameIndexFields(index, fields));
+
+  if (matchingIndexes.length > 1) {
+    const keepIndex = matchingIndexes.find((index) => index.name === indexName) || matchingIndexes[0];
+    for (const index of matchingIndexes) {
+      if (index.name !== keepIndex.name) {
+        await queryInterface.removeIndex(tableName, index.name);
+      }
+    }
+  }
+
+  if (matchingIndexes.length > 0 || existingIndexes.some((index) => index.name === indexName)) {
     return;
   }
 
