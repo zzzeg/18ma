@@ -501,6 +501,21 @@ async function ensureUniqueIndex(tableName, indexName, fields) {
   });
 }
 
+async function ensureNullableColumn(tableName, columnName, definition) {
+  const description = await queryInterface.describeTable(tableName);
+  if (!description[columnName]) {
+    await queryInterface.addColumn(tableName, columnName, definition);
+    return;
+  }
+
+  if (description[columnName].allowNull === false) {
+    await queryInterface.changeColumn(tableName, columnName, {
+      ...definition,
+      allowNull: true
+    });
+  }
+}
+
 async function ensureSchemaUpgrades() {
   const userTable = User.getTableName();
   const paymentRecordTable = PaymentRecord.getTableName();
@@ -510,6 +525,11 @@ async function ensureSchemaUpgrades() {
     allowNull: true
   });
   await ensureUniqueIndex(userTable, 'users_username_unique', ['username']);
+
+  await ensureNullableColumn(userTable, 'phone', {
+    type: DataTypes.STRING,
+    allowNull: true
+  });
 
   await ensureColumn(userTable, 'role', {
     type: DataTypes.STRING,
