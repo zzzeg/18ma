@@ -14,6 +14,18 @@ function registerAuthRoutes({
   normalizeContact,
   assertContact,
 }) {
+  function assertUserCanAuthenticate(user, res) {
+    if (user.status === 'cancelled') {
+      res.status(403).json({ error: '账户已注销' });
+      return false;
+    }
+    if (user.status === 'disabled') {
+      res.status(403).json({ error: '账号已停用，请联系管理员' });
+      return false;
+    }
+    return true;
+  }
+
   app.post('/api/auth/send-code', async (req, res) => {
     return res.status(410).json({
       error: '邮箱验证码注册已停用，请改用用户名密码注册',
@@ -85,9 +97,7 @@ function registerAuthRoutes({
         return res.status(400).json({ error: '用户名或密码错误' });
       }
 
-      if (user.status === 'disabled') {
-        return res.status(403).json({ error: '账号已停用，请联系管理员' });
-      }
+      if (!assertUserCanAuthenticate(user, res)) return;
 
       if (!verifyPassword(password, user.password)) {
         return res.status(400).json({ error: '用户名或密码错误' });
@@ -145,6 +155,7 @@ function registerAuthRoutes({
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
+      if (!assertUserCanAuthenticate(user, res)) return;
 
       res.json({
         success: true,
@@ -152,7 +163,8 @@ function registerAuthRoutes({
           username: user.username,
           nickname: user.nickname || '',
           contact: user.contact || '',
-          role: user.role || 'user'
+          role: user.role || 'user',
+          status: user.status || 'active'
         }
       });
     } catch (error) {
@@ -169,6 +181,7 @@ function registerAuthRoutes({
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
+      if (!assertUserCanAuthenticate(user, res)) return;
 
       if (nickname !== undefined) user.nickname = nickname;
       if (contact !== undefined) {
@@ -190,12 +203,53 @@ function registerAuthRoutes({
           username: user.username,
           nickname: user.nickname,
           contact: user.contact,
-          role: user.role || 'user'
+          role: user.role || 'user',
+          status: user.status || 'active'
         }
       });
     } catch (error) {
       console.error('Update profile error:', error);
       res.status(500).json({ error: 'Failed to update profile' });
+    }
+  });
+
+  app.post('/api/user/cancellation-request', authenticateToken, async (req, res) => {
+    try {
+      const user = await User.findByPk(req.user.userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (user.role === 'admin') {
+        return res.status(400).json({ error: '超级管理员不能提交注销申请' });
+      }
+      if (user.status === 'cancelled') {
+        return res.status(400).json({ error: '账户已注销' });
+      }
+      if (user.status === 'cancellation_pending') {
+        return res.status(400).json({ error: '注销申请已提交，请等待审核' });
+      }
+      if (user.status === 'disabled') {
+        return res.status(400).json({ error: '账号已停用，请联系管理员' });
+      }
+
+      user.status = 'cancellation_pending';
+      user.cancellationRequestedAt = new Date();
+      await user.save();
+
+      res.json({
+        success: true,
+        message: '注销申请已提交，请等待超级管理员审核',
+        data: {
+          username: user.username,
+          nickname: user.nickname || '',
+          contact: user.contact || '',
+          role: user.role || 'user',
+          status: user.status
+        }
+      });
+    } catch (error) {
+      console.error('Cancellation request error:', error);
+      res.status(500).json({ error: '提交注销申请失败' });
     }
   });
 }

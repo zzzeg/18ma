@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
-import { adminUsersApi, type AdminUserRecord, type AdminUserUpdatePayload } from '../api/services'
+import { adminUsersApi, type AdminUserRecord, type AdminUserUpdatePayload, type UserStatus } from '../api/services'
 import { formatDate, validateUsername } from '../utils/utils'
 
 const route = useRoute()
@@ -16,7 +16,7 @@ const form = ref({
   nickname: '',
   contact: '',
   role: 'user' as 'user' | 'admin',
-  status: 'active' as 'active' | 'disabled',
+  status: 'active' as UserStatus,
 })
 
 const userId = computed(() => Number(route.params.id || 0))
@@ -115,6 +115,30 @@ async function deleteUser() {
   }
 }
 
+async function approveCancellation() {
+  if (!user.value) return
+  try {
+    const result = await adminUsersApi.updateUser(user.value.id, { status: 'cancelled' })
+    user.value = result
+    syncForm(result)
+    ElMessage.success('注销申请已通过')
+  } catch (error: any) {
+    ElMessage.error(error.error || '操作失败')
+  }
+}
+
+async function rejectCancellation() {
+  if (!user.value) return
+  try {
+    const result = await adminUsersApi.updateUser(user.value.id, { status: 'active' })
+    user.value = result
+    syncForm(result)
+    ElMessage.success('注销申请已驳回')
+  } catch (error: any) {
+    ElMessage.error(error.error || '操作失败')
+  }
+}
+
 onMounted(() => {
   void loadUser()
 })
@@ -160,7 +184,15 @@ onMounted(() => {
           <el-select v-model="form.status">
             <el-option label="已启用" value="active" />
             <el-option label="已停用" value="disabled" />
+            <el-option label="待注销审核" value="cancellation_pending" />
+            <el-option label="已注销" value="cancelled" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="注销申请时间">
+          <el-input :model-value="formatDate(user?.cancellationRequestedAt) || '--'" disabled />
+        </el-form-item>
+        <el-form-item label="注销时间">
+          <el-input :model-value="formatDate(user?.cancelledAt) || '--'" disabled />
         </el-form-item>
         <el-form-item label="最后登录">
           <el-input :model-value="formatDate(user?.lastLogin) || '--'" disabled />
@@ -179,6 +211,10 @@ onMounted(() => {
           <p>重置密码或删除用户会立即生效。</p>
         </div>
         <div class="danger-zone__actions">
+          <template v-if="user?.status === 'cancellation_pending'">
+            <el-button type="success" plain @click="approveCancellation">通过注销</el-button>
+            <el-button plain @click="rejectCancellation">驳回注销</el-button>
+          </template>
           <el-button plain @click="resetPassword">重置密码</el-button>
           <el-button type="danger" plain @click="deleteUser">删除用户</el-button>
         </div>

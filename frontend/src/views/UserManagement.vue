@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { adminUsersApi, type AdminUserRecord } from '../api/services'
+import { adminUsersApi, type AdminUserRecord, type UserStatus } from '../api/services'
 import RcStatusTag from '../components/rc/RcStatusTag.vue'
 import { useServerPagination } from '../composables/useServerPagination'
 import { formatDate } from '../utils/utils'
@@ -25,11 +25,21 @@ function roleTagType(value?: string) {
 }
 
 function statusText(value?: string) {
-  return value === 'disabled' ? '已停用' : '已启用'
+  return ({
+    active: '已启用',
+    disabled: '已停用',
+    cancellation_pending: '待注销审核',
+    cancelled: '已注销',
+  } as Record<string, string>)[value || ''] || '已启用'
 }
 
 function statusTagType(value?: string) {
-  return value === 'disabled' ? 'warning' : 'success'
+  return ({
+    active: 'success',
+    disabled: 'warning',
+    cancellation_pending: 'primary',
+    cancelled: 'info',
+  } as Record<string, 'success' | 'warning' | 'primary' | 'info'>)[value || ''] || 'success'
 }
 
 function buildQueryParams(page = currentPage.value) {
@@ -69,6 +79,20 @@ async function toggleStatus(row: AdminUserRecord) {
   } catch (error: any) {
     ElMessage.error(error.error || '操作失败')
   }
+}
+
+async function updateStatus(row: AdminUserRecord, nextStatus: UserStatus, message: string) {
+  try {
+    await adminUsersApi.updateUser(row.id, { status: nextStatus })
+    ElMessage.success(message)
+    await loadRows(currentPage.value)
+  } catch (error: any) {
+    ElMessage.error(error.error || '操作失败')
+  }
+}
+
+function canToggleStatus(row: AdminUserRecord) {
+  return row.status === 'active' || row.status === 'disabled'
 }
 
 async function changeRole(row: AdminUserRecord, nextRole: 'user' | 'admin') {
@@ -163,6 +187,8 @@ onMounted(() => {
           <el-select v-model="status" placeholder="全部状态" clearable>
             <el-option label="已启用" value="active" />
             <el-option label="已停用" value="disabled" />
+            <el-option label="待注销审核" value="cancellation_pending" />
+            <el-option label="已注销" value="cancelled" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -218,9 +244,13 @@ onMounted(() => {
           <template #default="{ row }">
             <div class="table-actions">
               <el-button text type="primary" @click="openDetail(row)">详情/编辑</el-button>
-              <el-button text type="warning" @click="toggleStatus(row)">
+              <el-button v-if="canToggleStatus(row)" text type="warning" @click="toggleStatus(row)">
                 {{ row.status === 'disabled' ? '启用' : '停用' }}
               </el-button>
+              <template v-if="row.status === 'cancellation_pending'">
+                <el-button text type="success" @click="updateStatus(row, 'cancelled', '注销申请已通过')">通过注销</el-button>
+                <el-button text type="primary" @click="updateStatus(row, 'active', '注销申请已驳回')">驳回</el-button>
+              </template>
               <el-dropdown trigger="click" @command="(command: unknown) => handleRoleCommand(row, command)">
                 <el-button text type="primary">改角色</el-button>
                 <template #dropdown>

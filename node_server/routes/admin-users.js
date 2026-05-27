@@ -18,6 +18,8 @@ function formatAdminUser(user) {
     contact: user.contact || '',
     role: user.role || 'user',
     status: user.status || 'active',
+    cancellationRequestedAt: user.cancellationRequestedAt || null,
+    cancelledAt: user.cancelledAt || null,
     lastLogin: user.lastLogin || null,
     createdAt: user.createdAt || null,
     updatedAt: user.updatedAt || null
@@ -74,7 +76,7 @@ function registerAdminUserRoutes({
       if (role === 'admin' || role === 'user') {
         where.role = role;
       }
-      if (status === 'active' || status === 'disabled') {
+      if (['active', 'disabled', 'cancellation_pending', 'cancelled'].includes(status)) {
         where.status = status;
       }
 
@@ -186,13 +188,27 @@ function registerAdminUserRoutes({
       }
 
       if (nextStatus !== undefined) {
-        if (nextStatus !== 'active' && nextStatus !== 'disabled') {
+        if (!['active', 'disabled', 'cancellation_pending', 'cancelled'].includes(nextStatus)) {
           res.status(400).json({ error: '状态参数无效' });
           return;
         }
-        if (user.id === authUser.id && nextStatus === 'disabled') {
-          res.status(400).json({ error: '不能停用自己的账号' });
+        if (user.id === authUser.id && nextStatus !== 'active') {
+          res.status(400).json({ error: '不能停用或注销自己的账号' });
           return;
+        }
+        if (nextStatus === 'cancellation_pending' && user.status !== 'cancellation_pending') {
+          user.cancellationRequestedAt = user.cancellationRequestedAt || new Date();
+          user.cancelledAt = null;
+        }
+        if (nextStatus === 'cancelled') {
+          user.cancellationRequestedAt = user.cancellationRequestedAt || new Date();
+          user.cancelledAt = new Date();
+        }
+        if (nextStatus === 'active' || nextStatus === 'disabled') {
+          user.cancelledAt = null;
+          if (user.status === 'cancellation_pending' || user.status === 'cancelled') {
+            user.cancellationRequestedAt = null;
+          }
         }
         user.status = nextStatus;
       }

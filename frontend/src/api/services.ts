@@ -109,7 +109,10 @@ export interface ProfileInfo {
   nickname: string
   contact?: string
   role?: 'user' | 'admin'
+  status?: UserStatus
 }
+
+export type UserStatus = 'active' | 'disabled' | 'cancellation_pending' | 'cancelled'
 
 export interface AdminUserRecord {
   id: number
@@ -118,7 +121,9 @@ export interface AdminUserRecord {
   nickname?: string
   contact?: string
   role: 'user' | 'admin'
-  status: 'active' | 'disabled'
+  status: UserStatus
+  cancellationRequestedAt?: string | null
+  cancelledAt?: string | null
   lastLogin?: string | null
   createdAt?: string | null
   updatedAt?: string | null
@@ -130,7 +135,7 @@ export interface AdminUserUpdatePayload {
   nickname?: string
   contact?: string
   role?: 'user' | 'admin'
-  status?: 'active' | 'disabled'
+  status?: UserStatus
 }
 
 export interface ShareRecord {
@@ -349,6 +354,7 @@ export const authApi = {
 export const profileApi = {
   getProfile: () => request<ProfileInfo>({ method: 'GET', url: '/user/profile' }, (data) => data.data),
   updateProfile: (payload: Partial<ProfileInfo>) => request<ProfileInfo>({ method: 'PUT', url: '/user/profile', data: payload }, (data) => data.data),
+  requestCancellation: () => request<ProfileInfo>({ method: 'POST', url: '/user/cancellation-request' }, (data) => data.data),
 }
 
 export const adminUsersApi = {

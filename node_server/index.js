@@ -837,12 +837,27 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: '未登录或登录已失效，请重新登录' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(token, JWT_SECRET, async (err, user) => {
     if (err) {
       return res.status(401).json({ error: '登录已失效，请重新登录' });
     }
-    req.user = user;
-    next();
+    try {
+      const authUser = user?.userId ? await User.findByPk(user.userId) : null;
+      if (!authUser) {
+        return res.status(401).json({ error: '用户不存在或登录已失效，请重新登录' });
+      }
+      if (authUser.status === 'cancelled') {
+        return res.status(403).json({ error: '账户已注销' });
+      }
+      if (authUser.status === 'disabled') {
+        return res.status(403).json({ error: '账号已停用，请联系管理员' });
+      }
+      req.user = user;
+      next();
+    } catch (error) {
+      console.error('Authenticate token error:', error);
+      return res.status(500).json({ error: '认证失败' });
+    }
   });
 };
 

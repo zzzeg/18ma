@@ -83,6 +83,14 @@ const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: 'active'
   },
+  cancellationRequestedAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  cancelledAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   lastLogin: {
     type: DataTypes.DATE
   }
@@ -583,6 +591,16 @@ async function ensureSchemaUpgrades() {
     type: DataTypes.STRING,
     allowNull: false,
     defaultValue: 'active'
+  });
+
+  await ensureColumn(userTable, 'cancellationRequestedAt', {
+    type: DataTypes.DATE,
+    allowNull: true
+  });
+
+  await ensureColumn(userTable, 'cancelledAt', {
+    type: DataTypes.DATE,
+    allowNull: true
   });
 
   await ensureColumn(paymentRecordTable, 'legacyType', {

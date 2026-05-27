@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { authApi, profileApi } from '../api/services'
 import { useAppStore } from '../stores/app'
@@ -39,6 +39,7 @@ const router = useRouter()
 const loading = ref(false)
 const savingProfile = ref(false)
 const passwordLoading = ref(false)
+const cancellationLoading = ref(false)
 const passwordDialogVisible = ref(false)
 const securityQuestionDialogVisible = ref(false)
 const avatarInput = ref<HTMLInputElement | null>(null)
@@ -67,6 +68,7 @@ const securityQuestionForm = ref({
   question: '',
   answer: '',
 })
+const accountStatus = ref('active')
 
 const preferenceItems = computed(() => [
   {
@@ -115,6 +117,20 @@ const accountRows = computed(() => [
       ? `已设置密保问题：${securityQuestion.value}`
       : '未设置密保问题，密保问题可有效保护账户安全',
   },
+  ...(store.role === 'admin'
+    ? []
+    : [
+        {
+          key: 'cancellation',
+          title: '注销账户',
+          description:
+            accountStatus.value === 'cancellation_pending'
+              ? '注销申请已提交，请等待超级管理员审核'
+              : accountStatus.value === 'cancelled'
+                ? '账户已注销'
+                : '提交注销申请后，需超级管理员审核通过才会注销账户',
+        },
+      ]),
 ])
 
 function normalizeSection(value: unknown): ProfileSection {
@@ -268,6 +284,7 @@ async function loadProfile() {
   try {
     const result = await profileApi.getProfile()
     store.applyProfile(result)
+    accountStatus.value = result.status || 'active'
     const stored = readStoredState(result.contact || '')
     profileForm.value.nickname = result.nickname || ''
     profileForm.value.contactPhone = stored.contactPhone || result.contact || store.contact || ''
@@ -348,6 +365,35 @@ async function submitPasswordUpdate() {
   }
 }
 
+async function submitCancellationRequest() {
+  if (accountStatus.value === 'cancellation_pending') {
+    ElMessage.info('注销申请已提交，请等待审核')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      '提交后需要超级管理员审核。审核通过后，账户会被标记为已注销，之后无法再次登录。',
+      '确认申请注销账户',
+      {
+        type: 'warning',
+        confirmButtonText: '提交申请',
+        cancelButtonText: '取消',
+      },
+    )
+    cancellationLoading.value = true
+    const result = await profileApi.requestCancellation()
+    accountStatus.value = result.status || 'cancellation_pending'
+    pushSecurityLog('提交注销账户申请')
+    ElMessage.success('注销申请已提交，请等待超级管理员审核')
+  } catch (error: any) {
+    if (error === 'cancel' || error === 'close') return
+    ElMessage.error(error.error || '提交注销申请失败')
+  } finally {
+    cancellationLoading.value = false
+  }
+}
+
 function openSecurityQuestionDialog() {
   securityQuestionForm.value.question = securityQuestion.value
   securityQuestionForm.value.answer = securityAnswer.value
@@ -383,6 +429,10 @@ function handleAccountAction(key: string) {
   }
   if (key === 'question') {
     openSecurityQuestionDialog()
+    return
+  }
+  if (key === 'cancellation') {
+    void submitCancellationRequest()
   }
 }
 
@@ -490,7 +540,17 @@ onMounted(() => {
                 <strong>{{ item.title }}</strong>
                 <p>{{ item.description }}</p>
               </div>
-              <button class="manage-item__action" @click="handleAccountAction(item.key)">处理</button>
+              <button
+                class="manage-item__action"
+                :disabled="cancellationLoading || item.key === 'cancellation' && accountStatus === 'cancellation_pending'"
+                @click="handleAccountAction(item.key)"
+              >
+                {{
+                  item.key === 'cancellation'
+                    ? accountStatus === 'cancellation_pending' ? '待审核' : '申请注销'
+                    : '处理'
+                }}
+              </button>
             </article>
           </div>
         </section>
@@ -666,6 +726,11 @@ onMounted(() => {
     cursor: pointer;
     font-size: 14px;
     padding: 0;
+
+    &:disabled {
+      color: var(--rc-text-soft);
+      cursor: not-allowed;
+    }
   }
 }
 
