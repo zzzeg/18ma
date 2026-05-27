@@ -112,13 +112,10 @@ onMounted(() => {
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="applyFilters">查询</el-button>
-        </el-form-item>
-        <el-form-item>
           <el-button plain @click="resetFilters">重置</el-button>
-        </el-form-item>
-        <el-form-item>
           <el-button type="primary" @click="router.push('/upload')">发布资源</el-button>
         </el-form-item>
+
       </el-form>
     </section>
 
@@ -159,8 +156,8 @@ onMounted(() => {
       </el-table>
       <div class="table-pagination">
         <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize"
-          layout="total, sizes, prev, pager, next, jumper" :total="total" :page-sizes="[10, 20, 30, 50]" @size-change="handleSizeChange"
-          @current-change="handleCurrentChange" />
+          layout="total, sizes, prev, pager, next, jumper" :total="total" :page-sizes="[10, 20, 30, 50]"
+          @size-change="handleSizeChange" @current-change="handleCurrentChange" />
       </div>
     </section>
   </div>
@@ -178,18 +175,15 @@ onMounted(() => {
 }
 
 .filter-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) 120px 300px minmax(250px, auto);
+  gap: 14px;
+
   :deep(.el-form-item) {
     margin-bottom: 0;
   }
 
-  :deep(.el-input),
-  :deep(.el-input__wrapper) {
-    width: 320px;
-  }
 
-  :deep(.el-select) {
-    width: 180px;
-  }
 }
 
 .resources-table {

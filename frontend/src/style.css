@@ -15,7 +15,7 @@
   --rc-primary: #089b8f;
   --el-color-primary: #0fb5a8;
   --rc-primary-soft: #ecf5ff;
-  --rc-primary-strong: #337ecc;
+  --rc-primary-strong: #0fb5a8;
   --rc-success: #67c23a;
   --rc-warning: #e6a23c;
   --rc-danger: #f56c6c;
@@ -36,6 +36,9 @@
   --rc-max-width: 1400px;
 }
 
+.el-form--inline .el-form-item {
+  margin-right: 0px;
+}
 * {
   box-sizing: border-box;
 }

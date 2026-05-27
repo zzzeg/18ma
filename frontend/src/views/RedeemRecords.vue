@@ -49,16 +49,22 @@ onMounted(loadRows)
 
 <template>
   <div class="page-shell records-page" v-loading="loading">
-    <section class="panel filter-panel">
-      <div class="filter-row">
-        <el-input v-model="keyword" placeholder="搜索资源名、资源 ID 或卡密" @keyup.enter="applyFilters" />
-        <el-select v-model="currentStatus" placeholder="全部状态" clearable>
-          <el-option label="有效" value="active" />
-          <el-option label="已过期" value="expired" />
-          <el-option label="已撤销" value="revoked" />
-        </el-select>
-        <el-button plain @click="applyFilters">查询</el-button>
-      </div>
+    <section class="panel filter-panel" style="padding-bottom:4px">
+      <el-form inline class="filter-row">
+        <el-form-item>
+          <el-input v-model="keyword" placeholder="搜索资源名、资源 ID 或卡密" @keyup.enter="applyFilters" />
+        </el-form-item>
+        <el-form-item>
+          <el-select v-model="currentStatus" placeholder="全部状态" clearable>
+            <el-option label="有效" value="active" />
+            <el-option label="已过期" value="expired" />
+            <el-option label="已撤销" value="revoked" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="applyFilters">查询</el-button>
+        </el-form-item>
+      </el-form>
     </section>
 
     <section class="panel table-card">
@@ -91,23 +97,15 @@ onMounted(loadRows)
         </el-table-column>
         <el-table-column label="状态" min-width="110">
           <template #default="{ row }">
-            <RcStatusTag
-              :type="row.status === 'active' ? 'success' : row.status === 'expired' ? 'warning' : 'info'"
-              :text="row.status === 'active' ? '有效' : row.status === 'expired' ? '已过期' : '已撤销'"
-            />
+            <RcStatusTag :type="row.status === 'active' ? 'success' : row.status === 'expired' ? 'warning' : 'info'"
+              :text="row.status === 'active' ? '有效' : row.status === 'expired' ? '已过期' : '已撤销'" />
           </template>
         </el-table-column>
       </el-table>
       <div class="table-pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          :page-sizes="[10, 20, 30, 50]"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize"
+          layout="total, sizes, prev, pager, next, jumper" :total="total" :page-sizes="[10, 20, 30, 50]"
+          @size-change="handleSizeChange" @current-change="handleCurrentChange" />
       </div>
     </section>
   </div>
@@ -120,7 +118,7 @@ onMounted(loadRows)
   min-width: 0;
 }
 
-.records-page > * {
+.records-page>* {
   min-width: 0;
 }
 
@@ -143,7 +141,7 @@ onMounted(loadRows)
 
 .filter-row {
   display: grid;
-  grid-template-columns: minmax(320px, 460px) 180px auto;
+  grid-template-columns: minmax(220px, 360px) 180px auto;
   gap: 14px;
 }
 

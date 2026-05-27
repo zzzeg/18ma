@@ -376,13 +376,8 @@ onMounted(() => {
     </section>
 
     <el-dialog v-model="createVisible" title="添加用户" width="640px">
-      <el-form
-        ref="createFormRef"
-        class="create-form"
-        :model="createForm"
-        :rules="createRules"
-        label-position="top"
-      >
+      <el-form ref="createFormRef" class="create-form" :model="createForm" :rules="createRules" label-position="right"
+        label-width="80px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="createForm.username" placeholder="4-20 位字母、数字或下划线" />
         </el-form-item>
@@ -452,12 +447,6 @@ onMounted(() => {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-}
-
-.create-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 16px;
 }
 
 @media (max-width: 960px) {

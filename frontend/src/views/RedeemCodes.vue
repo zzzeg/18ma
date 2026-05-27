@@ -410,8 +410,7 @@ watch(rows, () => {
     </section>
 
     <section class="panel table-card">
-      <el-table ref="tableRef" :data="rows" row-key="id" empty-text="暂无卡密数据" table-layout="fixed"
-        style="width: 100%;"
+      <el-table ref="tableRef" :data="rows" row-key="id" empty-text="暂无卡密数据" table-layout="fixed" style="width: 100%;"
         @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="48" align="center" />
         <el-table-column label="卡密" width="120">
@@ -464,8 +463,8 @@ watch(rows, () => {
       </el-table>
       <div class="table-pagination">
         <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize"
-          layout="total, sizes, prev, pager, next, jumper" :total="total" :page-sizes="[10, 20, 30, 50]" @size-change="handleSizeChange"
-          @current-change="handleCurrentChange" />
+          layout="total, sizes, prev, pager, next, jumper" :total="total" :page-sizes="[10, 20, 30, 50]"
+          @size-change="handleSizeChange" @current-change="handleCurrentChange" />
       </div>
     </section>
 
@@ -578,7 +577,7 @@ watch(rows, () => {
   min-width: 0;
 }
 
-.redeem-page > * {
+.redeem-page>* {
   min-width: 0;
 }
 
@@ -606,7 +605,7 @@ watch(rows, () => {
 
 .filter-form {
   display: grid;
-  grid-template-columns: minmax(320px, 460px) 180px auto;
+  grid-template-columns: minmax(220px, 360px) 180px auto;
   gap: 14px;
   align-items: start;
 
