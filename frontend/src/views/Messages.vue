@@ -317,28 +317,19 @@ onBeforeUnmount(() => {
     <section class="panel chat-shell">
       <aside class="thread-list">
         <div class="thread-list__tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.value"
-            :class="{ 'is-active': activeFilter === tab.value }"
-            @click="handleFilterChange(tab.value)"
-          >
+          <button v-for="tab in tabs" :key="tab.value" :class="{ 'is-active': activeFilter === tab.value }"
+            @click="handleFilterChange(tab.value)">
             <el-badge :value="tabBadgeCount(tab.value)" :hidden="tabBadgeCount(tab.value) === 0" :offset="[30, 0]">
               <span>{{ tab.label }}</span>
             </el-badge>
           </button>
         </div>
         <div class="thread-list__toolbar">
-          <el-button plain @click="loadThreads(true)">刷新会话</el-button>
+          <el-button @click="loadThreads(true)" type="primary">刷新会话</el-button>
         </div>
 
-        <button
-          v-for="thread in threads"
-          :key="thread.id"
-          class="thread-item"
-          :class="{ 'is-active': activeThreadId === thread.id }"
-          @click="selectThread(thread.id)"
-        >
+        <button v-for="thread in threads" :key="thread.id" class="thread-item"
+          :class="{ 'is-active': activeThreadId === thread.id }" @click="selectThread(thread.id)">
           <div class="thread-item__row">
             <strong>{{ thread.title }}</strong>
             <span>{{ formatRelativeTime(thread.lastMessageAt) }}</span>
@@ -369,12 +360,7 @@ onBeforeUnmount(() => {
           </header>
 
           <div class="chat-panel__messages">
-            <div
-              v-for="item in messages"
-              :key="item.id"
-              class="bubble"
-              :class="bubbleClasses(item)"
-            >
+            <div v-for="item in messages" :key="item.id" class="bubble" :class="bubbleClasses(item)">
               <label>{{ messageRoleText(item.role) }}</label>
               <p>{{ item.text }}</p>
               <span>{{ formatRelativeTime(item.time) }}</span>
@@ -386,7 +372,9 @@ onBeforeUnmount(() => {
             <div class="chat-panel__actions">
               <small>{{ composerHint }}</small>
               <el-button type="primary" :loading="sending" @click="sendMessage">
-                <el-icon><Promotion /></el-icon>
+                <el-icon>
+                  <Promotion />
+                </el-icon>
                 发送
               </el-button>
             </div>
@@ -397,7 +385,8 @@ onBeforeUnmount(() => {
               <strong>{{ composerNoticeTitle }}</strong>
               <p>{{ composerNoticeText }}</p>
             </div>
-            <el-button v-if="showReconnectAction" type="primary" :loading="sessionCreating" @click="ensureSupportSessionAndOpen">
+            <el-button v-if="showReconnectAction" type="primary" :loading="sessionCreating"
+              @click="ensureSupportSessionAndOpen">
               重新发起会话
             </el-button>
           </footer>
@@ -704,6 +693,7 @@ onBeforeUnmount(() => {
 }
 
 .chat-empty {
+  margin-top: 100px;
   display: grid;
   place-items: center;
   text-align: center;

@@ -99,7 +99,7 @@ const cardClass = computed(() => [`rc-stat-card--${props.tone}`, props.strong ? 
   }
 
   &--strong {
-    background: linear-gradient(135deg, #409eff, #66b1ff 72%);
+    background: linear-gradient(135deg, var(--el-color-primary), var(--rc-primary) 72%);
     color: #fff;
 
     .rc-stat-card__label,

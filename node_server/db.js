@@ -550,7 +550,12 @@ async function ensureNullableColumn(tableName, columnName, definition) {
 
 async function ensureSchemaUpgrades() {
   const userTable = User.getTableName();
+  const shareTable = Share.getTableName();
   const paymentRecordTable = PaymentRecord.getTableName();
+
+  await ensureUniqueIndex(userTable, 'phone', ['phone']);
+  await ensureUniqueIndex(shareTable, 'shareCode', ['shareCode']);
+  await ensureUniqueIndex(paymentRecordTable, 'orderId', ['orderId']);
 
   await ensureColumn(userTable, 'username', {
     type: DataTypes.STRING,

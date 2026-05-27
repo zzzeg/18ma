@@ -628,6 +628,10 @@ function getThreadUserNickname(thread) {
   return thread?.User?.nickname || buildDefaultNickname(thread?.userPhone || '');
 }
 
+function getMessageUserKey(authUser) {
+  return String(authUser?.phone || authUser?.username || authUser?.id || '').trim();
+}
+
 function isSupportThreadExpired(thread, now = Date.now()) {
   if (!thread || thread.type !== 'support') return false;
   if (thread.status === 'expired') return true;
@@ -779,11 +783,17 @@ async function ensureGuestbookThread(userPhone) {
 }
 
 async function ensureMessageInbox(userPhone) {
+  if (!userPhone) {
+    throw new Error('Message user key is required');
+  }
   await ensureSystemThread(userPhone);
   await ensureGuestbookThread(userPhone);
 }
 
 async function ensureSupportSession(userPhone) {
+  if (!userPhone) {
+    throw new Error('Message user key is required');
+  }
   await expireSupportThreads(userPhone);
 
   const latestThread = await MessageThread.findOne({
@@ -1425,9 +1435,10 @@ app.get('/api/messages/unread-summary', authenticateToken, async (req, res) => {
       return res.json({ success: true, data: { unreadCount: pendingCount, pendingCount } });
     }
 
-    await ensureMessageInbox(authUser.phone);
-    await expireSupportThreads(authUser.phone);
-    const threads = await MessageThread.findAll({ where: { userPhone: authUser.phone } });
+    const messageUserKey = getMessageUserKey(authUser);
+    await ensureMessageInbox(messageUserKey);
+    await expireSupportThreads(messageUserKey);
+    const threads = await MessageThread.findAll({ where: { userPhone: messageUserKey } });
     const unreadCount = threads.reduce((sum, item) => sum + Number(item.unreadCount || 0), 0);
     const pendingCount = threads.filter((item) => item.status === 'waiting_admin').length;
     res.json({ success: true, data: { unreadCount, pendingCount } });
@@ -1447,13 +1458,15 @@ app.get('/api/messages/threads', authenticateToken, async (req, res) => {
     if (authUser.role === 'admin') {
       await expireSupportThreads();
     } else {
-      await ensureMessageInbox(authUser.phone);
-      await expireSupportThreads(authUser.phone);
+      const messageUserKey = getMessageUserKey(authUser);
+      await ensureMessageInbox(messageUserKey);
+      await expireSupportThreads(messageUserKey);
     }
 
     const type = req.query.type ? String(req.query.type) : '';
+    const messageUserKey = authUser.role === 'admin' ? '' : getMessageUserKey(authUser);
     const where = {
-      ...(authUser.role === 'admin' ? {} : { userPhone: authUser.phone }),
+      ...(authUser.role === 'admin' ? {} : { userPhone: messageUserKey }),
       ...(type && type !== 'all' ? { type } : {})
     };
     const query = {
@@ -1488,8 +1501,9 @@ app.post('/api/messages/support/session', authenticateToken, async (req, res) =>
       return res.status(403).json({ error: '管理员无需创建对话工单会话' });
     }
 
-    await ensureMessageInbox(authUser.phone);
-    const thread = await ensureSupportSession(authUser.phone);
+    const messageUserKey = getMessageUserKey(authUser);
+    await ensureMessageInbox(messageUserKey);
+    const thread = await ensureSupportSession(messageUserKey);
 
     res.json({
       success: true,
@@ -1508,14 +1522,15 @@ app.get('/api/messages/threads/:id', authenticateToken, async (req, res) => {
       return res.status(401).json({ error: '用户不存在或登录已失效' });
     }
 
+    const messageUserKey = authUser.role === 'admin' ? '' : getMessageUserKey(authUser);
     if (authUser.role !== 'admin') {
-      await ensureMessageInbox(authUser.phone);
+      await ensureMessageInbox(messageUserKey);
     }
 
     const thread = await MessageThread.findOne({
       where: authUser.role === 'admin'
         ? { id: req.params.id }
-        : { id: req.params.id, userPhone: authUser.phone },
+        : { id: req.params.id, userPhone: messageUserKey },
       include: [{ model: User, attributes: ['phone', 'nickname'], required: false }]
     });
 
@@ -1574,14 +1589,15 @@ app.post('/api/messages/threads/:id/messages', authenticateToken, async (req, re
       return res.status(401).json({ error: '用户不存在或登录已失效' });
     }
 
+    const messageUserKey = authUser.role === 'admin' ? '' : getMessageUserKey(authUser);
     if (authUser.role !== 'admin') {
-      await ensureMessageInbox(authUser.phone);
+      await ensureMessageInbox(messageUserKey);
     }
 
     const thread = await MessageThread.findOne({
       where: authUser.role === 'admin'
         ? { id: req.params.id }
-        : { id: req.params.id, userPhone: authUser.phone }
+        : { id: req.params.id, userPhone: messageUserKey }
     });
 
     if (!thread) {

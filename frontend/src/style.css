@@ -11,7 +11,9 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --rc-primary: #409eff;
+  /* --rc-primary: #409eff; */
+  --rc-primary: #089b8f;
+  --el-color-primary: #0fb5a8;
   --rc-primary-soft: #ecf5ff;
   --rc-primary-strong: #337ecc;
   --rc-success: #67c23a;
@@ -322,7 +324,9 @@ img {
   display: block;
   width: 120px;
   height: 100%;
-  box-shadow: 0 0 10px rgba(64, 158, 255, 0.45), 0 0 5px rgba(64, 158, 255, 0.28);
+  box-shadow:
+    0 0 10px rgba(64, 158, 255, 0.45),
+    0 0 5px rgba(64, 158, 255, 0.28);
   opacity: 1;
   transform: rotate(2deg) translateY(-1px);
 }

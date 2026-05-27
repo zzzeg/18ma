@@ -331,6 +331,11 @@ onMounted(() => {
 .dashboard-page {
   display: grid;
   gap: 16px;
+  min-width: 0;
+}
+
+.dashboard-page > * {
+  min-width: 0;
 }
 
 .security-card {
@@ -389,6 +394,18 @@ onMounted(() => {
 .trend-card,
 .table-card {
   padding: 18px;
+}
+
+.table-card {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.table-card :deep(.el-table) {
+  min-width: 0;
+  width: 100%;
 }
 
 .chart-card__header,
@@ -540,6 +557,10 @@ onMounted(() => {
 @media (max-width: 760px) {
   .donut-wrap {
     flex-direction: column;
+  }
+
+  .table-card :deep(.el-table) {
+    min-width: 1010px;
   }
 }
 </style>
