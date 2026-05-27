@@ -15,6 +15,7 @@ const {
   normalizeRegisterPayload,
 } = require('./auth-helpers');
 const { registerAuthRoutes } = require('./routes/auth');
+const { registerAdminUserRoutes } = require('./routes/admin-users');
 const { createRedeemHelpers, registerRedeemRoutes } = require('./routes/redeem');
 const { registerWalletRoutes } = require('./routes/wallet');
 const {
@@ -861,6 +862,14 @@ registerAuthRoutes({
   upgradePasswordHashIfNeeded,
   normalizeContact,
   assertContact,
+});
+
+registerAdminUserRoutes({
+  app,
+  authenticateToken,
+  requireAuthUser,
+  User,
+  Op,
 });
 
 registerRedeemRoutes({

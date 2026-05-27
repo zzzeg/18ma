@@ -12,8 +12,9 @@ const route = useRoute()
 const router = useRouter()
 const store = useAppStore()
 
-const mainItems = computed(() => adminNavItems.filter((item) => item.group === 'main'))
-const secondaryItems = computed(() => adminNavItems.filter((item) => item.group === 'secondary'))
+const visibleNavItems = computed(() => adminNavItems.filter((item) => !item.adminOnly || store.role === 'admin'))
+const mainItems = computed(() => visibleNavItems.value.filter((item) => item.group === 'main'))
+const secondaryItems = computed(() => visibleNavItems.value.filter((item) => item.group === 'secondary'))
 const activeIndex = computed(() => {
   if (route.path === '/profile') {
     return `/profile?section=${String(route.query.section || 'info')}`

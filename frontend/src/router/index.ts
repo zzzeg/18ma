@@ -1,5 +1,5 @@
 ﻿import { createRouter, createWebHistory } from 'vue-router'
-import { isAuthenticated } from '../utils/auth'
+import { getRole, isAuthenticated } from '../utils/auth'
 import { doneRouteProgress, resetProgress, startRouteProgress } from '../utils/progress'
 
 const router = createRouter({
@@ -17,6 +17,7 @@ const router = createRouter({
     { path: '/guest-query', redirect: '/index' },
     { path: '/redeem-codes', name: 'redeem-codes', component: () => import('../views/RedeemCodes.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索资源、卡密或批次号...' } },
     { path: '/redeem-records', name: 'redeem-records', component: () => import('../views/RedeemRecords.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索资源名称或卡密...' } },
+    { path: '/users', name: 'users', component: () => import('../views/UserManagement.vue'), meta: { requiresAuth: true, requiresAdmin: true, searchPlaceholder: '搜索用户名、昵称或联系方式...' } },
     { path: '/withdraw-account', name: 'withdraw-account', component: () => import('../views/WithdrawAccount.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索提现账户信息...' } },
     { path: '/withdrawals', name: 'withdrawals', component: () => import('../views/Withdrawals.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索提现记录...' } },
     { path: '/withdraw-apply', name: 'withdraw-apply', component: () => import('../views/WithdrawApply.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索提现申请...' } },
@@ -37,6 +38,11 @@ router.beforeEach((to, _from, next) => {
 
   if (to.meta.requiresAuth && !isAuthenticated()) {
     next({ name: 'login' })
+    return
+  }
+
+  if (to.meta.requiresAdmin && getRole() !== 'admin') {
+    next({ name: 'dashboard' })
     return
   }
 

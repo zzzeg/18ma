@@ -111,6 +111,18 @@ export interface ProfileInfo {
   role?: 'user' | 'admin'
 }
 
+export interface AdminUserRecord {
+  id: number
+  username: string
+  phone?: string
+  nickname?: string
+  contact?: string
+  role: 'user' | 'admin'
+  lastLogin?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
 export interface ShareRecord {
   id: number
   shareCode: string
@@ -327,6 +339,11 @@ export const authApi = {
 export const profileApi = {
   getProfile: () => request<ProfileInfo>({ method: 'GET', url: '/user/profile' }, (data) => data.data),
   updateProfile: (payload: Partial<ProfileInfo>) => request<ProfileInfo>({ method: 'PUT', url: '/user/profile', data: payload }, (data) => data.data),
+}
+
+export const adminUsersApi = {
+  getUsers: (params?: Record<string, unknown>) => request<PaginatedListResponse<AdminUserRecord>>({ method: 'GET', url: '/admin/users', params }),
+  getUser: (id: number) => request<AdminUserRecord>({ method: 'GET', url: `/admin/users/${id}` }, (data) => data.data),
 }
 
 export const walletApi = {

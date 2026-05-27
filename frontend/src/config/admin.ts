@@ -4,6 +4,7 @@ import {
   CreditCard,
   Bell,
   User,
+  UserFilled,
   Plus,
   Reading,
   DataBoard,
@@ -14,6 +15,7 @@ export interface AdminNavItem {
   label: string
   icon: Component
   group?: 'main' | 'secondary'
+  adminOnly?: boolean
   children?: Array<{
     label: string
     path: string
@@ -26,6 +28,7 @@ export const adminNavItems: AdminNavItem[] = [
   { path: '/resources', label: '资源管理', icon: Files, group: 'main' },
   { path: '/redeem-codes', label: '卡密管理', icon: CreditCard, group: 'main' },
   { path: '/redeem-records', label: '兑换记录', icon: Reading, group: 'main' },
+  { path: '/users', label: '用户管理', icon: UserFilled, group: 'main', adminOnly: true },
   { path: '/messages', label: '消息中心', icon: Bell, group: 'secondary' },
   {
     path: '/profile',
