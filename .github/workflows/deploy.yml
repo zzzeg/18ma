@@ -9,10 +9,12 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Package project
         run: |
@@ -45,17 +47,44 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -p "${{ secrets.SERVER_PORT }}" \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" << 'EOF'
-              set -e
-              mkdir -p /opt/18ma
-              cd /opt/18ma
+              set -euo pipefail
 
-              tar -xzf /tmp/18ma-deploy.tar.gz -C /opt/18ma
+              APP_DIR=/opt/18ma
+              RELEASE_DIR=/tmp/18ma-release
+              SUDO=""
+
+              if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+                SUDO="sudo"
+              fi
+
+              rm -rf "$RELEASE_DIR"
+              mkdir -p "$RELEASE_DIR"
+              tar -xzf /tmp/18ma-deploy.tar.gz -C "$RELEASE_DIR" --no-same-owner
+
+              $SUDO mkdir -p "$APP_DIR"
+              if [ -n "$SUDO" ]; then
+                $SUDO chown -R "$(id -u):$(id -g)" "$APP_DIR"
+              fi
+
+              cd "$APP_DIR"
+
+              rm -rf docker-compose.yml .env.example frontend node_server
+              cp -a "$RELEASE_DIR"/docker-compose.yml "$RELEASE_DIR"/.env.example "$RELEASE_DIR"/frontend "$RELEASE_DIR"/node_server "$APP_DIR"/
 
               if [ ! -f .env ]; then
                 echo "Missing /opt/18ma/.env. Copy /opt/18ma/.env.example to /opt/18ma/.env and set production secrets first."
                 exit 1
               fi
 
-              docker compose up -d --build
-              docker image prune -f
+              if docker info >/dev/null 2>&1; then
+                DOCKER="docker"
+              elif [ -n "$SUDO" ] && sudo docker info >/dev/null 2>&1; then
+                DOCKER="$SUDO docker"
+              else
+                echo "Cannot access Docker. Add the deploy user to the docker group or allow passwordless sudo for docker."
+                exit 1
+              fi
+
+              $DOCKER compose up -d --build
+              $DOCKER image prune -f
           EOF
