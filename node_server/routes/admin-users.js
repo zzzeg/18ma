@@ -32,6 +32,10 @@ function normalizeOptionalString(value) {
   return normalized || null;
 }
 
+function fallbackDefaultNickname() {
+  return `用户${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
 function registerAdminUserRoutes({
   app,
   authenticateToken,
@@ -135,10 +139,12 @@ function registerAdminUserRoutes({
         return;
       }
 
-      const contactError = assertContact(contact);
-      if (contactError) {
-        res.status(400).json({ error: contactError });
-        return;
+      if (contact) {
+        const contactError = assertContact(contact);
+        if (contactError) {
+          res.status(400).json({ error: contactError });
+          return;
+        }
       }
 
       const existing = await User.findOne({ where: { username } });
@@ -159,7 +165,7 @@ function registerAdminUserRoutes({
         username,
         password: hashPassword(password),
         phone,
-        nickname: nickname || buildDefaultNickname(),
+        nickname: nickname || (typeof buildDefaultNickname === 'function' ? buildDefaultNickname() : fallbackDefaultNickname()),
         contact,
         role,
         status,
