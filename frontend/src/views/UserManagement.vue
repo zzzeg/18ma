@@ -2,17 +2,29 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { adminUsersApi, type AdminUserRecord, type UserStatus } from '../api/services'
+import { adminUsersApi, type AdminUserCreatePayload, type AdminUserRecord, type UserStatus } from '../api/services'
 import RcStatusTag from '../components/rc/RcStatusTag.vue'
 import { useServerPagination } from '../composables/useServerPagination'
-import { formatDate } from '../utils/utils'
+import { formatDate, validatePassword, validateUsername } from '../utils/utils'
 
 const router = useRouter()
 const loading = ref(false)
+const createVisible = ref(false)
+const creating = ref(false)
 const keyword = ref('')
 const role = ref('')
 const status = ref('')
 const rows = ref<AdminUserRecord[]>([])
+const createForm = ref({
+  username: '',
+  password: '',
+  confirmPassword: '',
+  nickname: '',
+  phone: '',
+  contact: '',
+  role: 'user' as 'user' | 'admin',
+  status: 'active' as 'active' | 'disabled',
+})
 const pagination = useServerPagination()
 const { currentPage, pageSize, total, buildPaginationParams, syncFromResponse, resetPage } = pagination
 
@@ -93,6 +105,60 @@ async function updateStatus(row: AdminUserRecord, nextStatus: UserStatus, messag
 
 function canToggleStatus(row: AdminUserRecord) {
   return row.status === 'active' || row.status === 'disabled'
+}
+
+function openCreateDialog() {
+  createForm.value = {
+    username: '',
+    password: '',
+    confirmPassword: '',
+    nickname: '',
+    phone: '',
+    contact: '',
+    role: 'user',
+    status: 'active',
+  }
+  createVisible.value = true
+}
+
+async function createUser() {
+  const username = createForm.value.username.trim()
+  const password = createForm.value.password.trim()
+  if (!validateUsername(username)) {
+    ElMessage.warning('用户名需为 4-20 位字母、数字或下划线')
+    return
+  }
+  if (!validatePassword(password)) {
+    ElMessage.warning('密码至少 6 位')
+    return
+  }
+  if (password !== createForm.value.confirmPassword.trim()) {
+    ElMessage.warning('两次输入的密码不一致')
+    return
+  }
+
+  const payload: AdminUserCreatePayload = {
+    username,
+    password,
+    nickname: createForm.value.nickname.trim(),
+    phone: createForm.value.phone.trim() || null,
+    contact: createForm.value.contact.trim(),
+    role: createForm.value.role,
+    status: createForm.value.status,
+  }
+
+  creating.value = true
+  try {
+    await adminUsersApi.createUser(payload)
+    ElMessage.success('用户已添加')
+    createVisible.value = false
+    resetPage()
+    await loadRows(1)
+  } catch (error: any) {
+    ElMessage.error(error.error || '添加用户失败')
+  } finally {
+    creating.value = false
+  }
 }
 
 async function changeRole(row: AdminUserRecord, nextRole: 'user' | 'admin') {
@@ -194,6 +260,7 @@ onMounted(() => {
         <el-form-item>
           <el-button type="primary" @click="applyFilters">应用</el-button>
           <el-button plain @click="resetFilters">重置</el-button>
+          <el-button type="success" @click="openCreateDialog">添加用户</el-button>
         </el-form-item>
       </el-form>
     </section>
@@ -272,6 +339,45 @@ onMounted(() => {
           @size-change="handleSizeChange" @current-change="handleCurrentChange" />
       </div>
     </section>
+
+    <el-dialog v-model="createVisible" title="添加用户" width="560px">
+      <el-form class="create-form" label-position="top">
+        <el-form-item label="用户名">
+          <el-input v-model="createForm.username" placeholder="4-20 位字母、数字或下划线" />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input v-model="createForm.password" type="password" placeholder="至少 6 位" show-password />
+        </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="createForm.confirmPassword" type="password" placeholder="再次输入密码" show-password />
+        </el-form-item>
+        <el-form-item label="昵称">
+          <el-input v-model="createForm.nickname" placeholder="不填则自动生成" />
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="createForm.phone" placeholder="可选" />
+        </el-form-item>
+        <el-form-item label="联系方式">
+          <el-input v-model="createForm.contact" placeholder="可选" />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="createForm.role">
+            <el-option label="用户" value="user" />
+            <el-option label="超级管理员" value="admin" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="createForm.status">
+            <el-option label="已启用" value="active" />
+            <el-option label="已停用" value="disabled" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createVisible = false">取消</el-button>
+        <el-button type="primary" :loading="creating" @click="createUser">添加</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -307,6 +413,12 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
+.create-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
 @media (max-width: 960px) {
   .filter-row {
     grid-template-columns: 1fr;
@@ -314,6 +426,10 @@ onMounted(() => {
 
   .table-card :deep(.el-table) {
     min-width: 1280px;
+  }
+
+  .create-form {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -890,6 +890,7 @@ registerAdminUserRoutes({
   isValidUsername,
   normalizeContact,
   assertContact,
+  buildDefaultNickname,
 });
 
 registerRedeemRoutes({

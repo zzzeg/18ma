@@ -138,6 +138,16 @@ export interface AdminUserUpdatePayload {
   status?: UserStatus
 }
 
+export interface AdminUserCreatePayload {
+  username: string
+  password: string
+  phone?: string | null
+  nickname?: string
+  contact?: string
+  role: 'user' | 'admin'
+  status: 'active' | 'disabled'
+}
+
 export interface ShareRecord {
   id: number
   shareCode: string
@@ -360,6 +370,7 @@ export const profileApi = {
 export const adminUsersApi = {
   getUsers: (params?: Record<string, unknown>) => request<PaginatedListResponse<AdminUserRecord>>({ method: 'GET', url: '/admin/users', params }),
   getUser: (id: number) => request<AdminUserRecord>({ method: 'GET', url: `/admin/users/${id}` }, (data) => data.data),
+  createUser: (payload: AdminUserCreatePayload) => request<AdminUserRecord>({ method: 'POST', url: '/admin/users', data: payload }, (data) => data.data),
   updateUser: (id: number, payload: AdminUserUpdatePayload) => request<AdminUserRecord>({ method: 'PATCH', url: `/admin/users/${id}`, data: payload }, (data) => data.data),
   resetPassword: (id: number, password: string) => request({ method: 'POST', url: `/admin/users/${id}/reset-password`, data: { password } }),
   deleteUser: (id: number) => request({ method: 'DELETE', url: `/admin/users/${id}` }),

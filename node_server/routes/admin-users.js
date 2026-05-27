@@ -43,6 +43,7 @@ function registerAdminUserRoutes({
   isValidUsername,
   normalizeContact,
   assertContact,
+  buildDefaultNickname,
 }) {
   async function requireAdmin(req, res) {
     const authUser = await requireAuthUser(req, res);
@@ -97,6 +98,77 @@ function registerAdminUserRoutes({
     } catch (error) {
       console.error('Admin users list error:', error);
       res.status(500).json({ error: '获取用户列表失败' });
+    }
+  });
+
+  app.post('/api/admin/users', authenticateToken, async (req, res) => {
+    try {
+      const authUser = await requireAdmin(req, res);
+      if (!authUser) return;
+
+      const username = normalizeUsername(req.body?.username);
+      const password = String(req.body?.password || '');
+      const phone = normalizeOptionalString(req.body?.phone);
+      const contact = normalizeContact(req.body?.contact);
+      const nickname = String(req.body?.nickname || '').trim();
+      const role = String(req.body?.role || 'user').trim();
+      const status = String(req.body?.status || 'active').trim();
+
+      if (!username || !password) {
+        res.status(400).json({ error: '用户名和密码不能为空' });
+        return;
+      }
+      if (!isValidUsername(username)) {
+        res.status(400).json({ error: '用户名仅支持字母、数字、下划线，长度 4-20 位' });
+        return;
+      }
+      if (password.length < 6) {
+        res.status(400).json({ error: '密码至少 6 位' });
+        return;
+      }
+      if (role !== 'admin' && role !== 'user') {
+        res.status(400).json({ error: '角色参数无效' });
+        return;
+      }
+      if (status !== 'active' && status !== 'disabled') {
+        res.status(400).json({ error: '初始状态参数无效' });
+        return;
+      }
+
+      const contactError = assertContact(contact);
+      if (contactError) {
+        res.status(400).json({ error: contactError });
+        return;
+      }
+
+      const existing = await User.findOne({ where: { username } });
+      if (existing) {
+        res.status(400).json({ error: '用户名已存在' });
+        return;
+      }
+
+      if (phone) {
+        const existingPhone = await User.findOne({ where: { phone } });
+        if (existingPhone) {
+          res.status(400).json({ error: '手机号已被其他用户占用' });
+          return;
+        }
+      }
+
+      const user = await User.create({
+        username,
+        password: hashPassword(password),
+        phone,
+        nickname: nickname || buildDefaultNickname(),
+        contact,
+        role,
+        status,
+      });
+
+      res.status(201).json({ data: formatAdminUser(user) });
+    } catch (error) {
+      console.error('Admin user create error:', error);
+      res.status(500).json({ error: '添加用户失败' });
     }
   });
 
