@@ -6,85 +6,78 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  API_IMAGE: ghcr.io/zzzeg/18ma-api
+  FRONTEND_IMAGE: ghcr.io/zzzeg/18ma-frontend
+  IMAGE_PLATFORM: linux/arm64
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Package project
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./node_server
+          platforms: ${{ env.IMAGE_PLATFORM }}
+          push: true
+          tags: |
+            ${{ env.API_IMAGE }}:latest
+            ${{ env.API_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          platforms: ${{ env.IMAGE_PLATFORM }}
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          build-args: |
+            VITE_TURNSTILE_SITE_KEY=${{ secrets.VITE_TURNSTILE_SITE_KEY }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Trigger Jenkins deploy
+        env:
+          JENKINS_WEBHOOK_URL: ${{ secrets.JENKINS_WEBHOOK_URL }}
+          JENKINS_WEBHOOK_TOKEN: ${{ secrets.JENKINS_WEBHOOK_TOKEN }}
         run: |
-          tar \
-            --exclude='.git' \
-            --exclude='frontend/node_modules' \
-            --exclude='frontend/dist' \
-            --exclude='frontend/.vite' \
-            --exclude='node_server/node_modules' \
-            --exclude='node_server/data' \
-            --exclude='node_server/uploads' \
-            --exclude='node_server/*.log' \
-            -czf 18ma-deploy.tar.gz \
-            docker-compose.yml .env.example frontend node_server
+          set -euo pipefail
 
-      - name: Prepare SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "${{ secrets.SERVER_PORT }}" "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+          if [ -z "$JENKINS_WEBHOOK_URL" ]; then
+            echo "Missing GitHub secret: JENKINS_WEBHOOK_URL"
+            exit 1
+          fi
 
-      - name: Upload package
-        run: |
-          scp -i ~/.ssh/deploy_key -P "${{ secrets.SERVER_PORT }}" \
-            18ma-deploy.tar.gz \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/18ma-deploy.tar.gz"
+          if [ -z "$JENKINS_WEBHOOK_TOKEN" ]; then
+            echo "Missing GitHub secret: JENKINS_WEBHOOK_TOKEN"
+            exit 1
+          fi
 
-      - name: Deploy on server
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "${{ secrets.SERVER_PORT }}" \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" << 'EOF'
-              set -euo pipefail
-
-              APP_DIR=/opt/18ma
-              RELEASE_DIR=/tmp/18ma-release
-              SUDO=""
-
-              if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-                SUDO="sudo"
-              fi
-
-              rm -rf "$RELEASE_DIR"
-              mkdir -p "$RELEASE_DIR"
-              tar -xzf /tmp/18ma-deploy.tar.gz -C "$RELEASE_DIR" --no-same-owner
-
-              $SUDO mkdir -p "$APP_DIR"
-              if [ -n "$SUDO" ]; then
-                $SUDO chown -R "$(id -u):$(id -g)" "$APP_DIR"
-              fi
-
-              cd "$APP_DIR"
-
-              rm -rf docker-compose.yml .env.example frontend node_server
-              cp -a "$RELEASE_DIR"/docker-compose.yml "$RELEASE_DIR"/.env.example "$RELEASE_DIR"/frontend "$RELEASE_DIR"/node_server "$APP_DIR"/
-
-              if [ ! -f .env ]; then
-                echo "Missing /opt/18ma/.env. Copy /opt/18ma/.env.example to /opt/18ma/.env and set production secrets first."
-                exit 1
-              fi
-
-              if docker info >/dev/null 2>&1; then
-                DOCKER="docker"
-              elif [ -n "$SUDO" ] && sudo docker info >/dev/null 2>&1; then
-                DOCKER="$SUDO docker"
-              else
-                echo "Cannot access Docker. Add the deploy user to the docker group or allow passwordless sudo for docker."
-                exit 1
-              fi
-
-              $DOCKER compose up -d --build
-              $DOCKER image prune -f
-          EOF
+          curl --fail --show-error --silent \
+            -X POST \
+            "$JENKINS_WEBHOOK_URL?token=$JENKINS_WEBHOOK_TOKEN"
