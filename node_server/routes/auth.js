@@ -85,6 +85,10 @@ function registerAuthRoutes({
         return res.status(400).json({ error: '用户名或密码错误' });
       }
 
+      if (user.status === 'disabled') {
+        return res.status(403).json({ error: '账号已停用，请联系管理员' });
+      }
+
       if (!verifyPassword(password, user.password)) {
         return res.status(400).json({ error: '用户名或密码错误' });
       }

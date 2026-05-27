@@ -18,6 +18,7 @@ const router = createRouter({
     { path: '/redeem-codes', name: 'redeem-codes', component: () => import('../views/RedeemCodes.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索资源、卡密或批次号...' } },
     { path: '/redeem-records', name: 'redeem-records', component: () => import('../views/RedeemRecords.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索资源名称或卡密...' } },
     { path: '/users', name: 'users', component: () => import('../views/UserManagement.vue'), meta: { requiresAuth: true, requiresAdmin: true, searchPlaceholder: '搜索用户名、昵称或联系方式...' } },
+    { path: '/users/:id', name: 'user-detail', component: () => import('../views/UserDetail.vue'), meta: { requiresAuth: true, requiresAdmin: true, searchPlaceholder: '搜索用户名、昵称或联系方式...' } },
     { path: '/withdraw-account', name: 'withdraw-account', component: () => import('../views/WithdrawAccount.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索提现账户信息...' } },
     { path: '/withdrawals', name: 'withdrawals', component: () => import('../views/Withdrawals.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索提现记录...' } },
     { path: '/withdraw-apply', name: 'withdraw-apply', component: () => import('../views/WithdrawApply.vue'), meta: { requiresAuth: true, searchPlaceholder: '搜索提现申请...' } },

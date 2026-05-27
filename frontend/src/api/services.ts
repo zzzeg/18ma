@@ -118,9 +118,19 @@ export interface AdminUserRecord {
   nickname?: string
   contact?: string
   role: 'user' | 'admin'
+  status: 'active' | 'disabled'
   lastLogin?: string | null
   createdAt?: string | null
   updatedAt?: string | null
+}
+
+export interface AdminUserUpdatePayload {
+  username?: string
+  phone?: string | null
+  nickname?: string
+  contact?: string
+  role?: 'user' | 'admin'
+  status?: 'active' | 'disabled'
 }
 
 export interface ShareRecord {
@@ -344,6 +354,9 @@ export const profileApi = {
 export const adminUsersApi = {
   getUsers: (params?: Record<string, unknown>) => request<PaginatedListResponse<AdminUserRecord>>({ method: 'GET', url: '/admin/users', params }),
   getUser: (id: number) => request<AdminUserRecord>({ method: 'GET', url: `/admin/users/${id}` }, (data) => data.data),
+  updateUser: (id: number, payload: AdminUserUpdatePayload) => request<AdminUserRecord>({ method: 'PATCH', url: `/admin/users/${id}`, data: payload }, (data) => data.data),
+  resetPassword: (id: number, password: string) => request({ method: 'POST', url: `/admin/users/${id}/reset-password`, data: { password } }),
+  deleteUser: (id: number) => request({ method: 'DELETE', url: `/admin/users/${id}` }),
 }
 
 export const walletApi = {

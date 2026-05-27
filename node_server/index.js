@@ -870,6 +870,11 @@ registerAdminUserRoutes({
   requireAuthUser,
   User,
   Op,
+  hashPassword,
+  normalizeUsername,
+  isValidUsername,
+  normalizeContact,
+  assertContact,
 });
 
 registerRedeemRoutes({

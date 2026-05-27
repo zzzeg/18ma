@@ -78,6 +78,11 @@ const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: 'user'
   },
+  status: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'active'
+  },
   lastLogin: {
     type: DataTypes.DATE
   }
@@ -572,6 +577,12 @@ async function ensureSchemaUpgrades() {
     type: DataTypes.STRING,
     allowNull: false,
     defaultValue: 'user'
+  });
+
+  await ensureColumn(userTable, 'status', {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'active'
   });
 
   await ensureColumn(paymentRecordTable, 'legacyType', {
