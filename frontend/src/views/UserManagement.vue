@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { adminUsersApi, type AdminUserCreatePayload, type AdminUserRecord, type UserStatus } from '../api/services'
 import RcStatusTag from '../components/rc/RcStatusTag.vue'
@@ -11,6 +11,7 @@ const router = useRouter()
 const loading = ref(false)
 const createVisible = ref(false)
 const creating = ref(false)
+const createFormRef = ref<FormInstance>()
 const keyword = ref('')
 const role = ref('')
 const status = ref('')
@@ -25,6 +26,47 @@ const createForm = ref({
   role: 'user' as 'user' | 'admin',
   status: 'active' as 'active' | 'disabled',
 })
+const createRules: FormRules<typeof createForm.value> = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (!validateUsername(String(value || ''))) {
+          callback(new Error('用户名需为 4-20 位字母、数字或下划线'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur',
+    },
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (!validatePassword(String(value || ''))) {
+          callback(new Error('密码至少 6 位'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur',
+    },
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入密码', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (String(value || '') !== createForm.value.password) {
+          callback(new Error('两次输入的密码不一致'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur',
+    },
+  ],
+}
 const pagination = useServerPagination()
 const { currentPage, pageSize, total, buildPaginationParams, syncFromResponse, resetPage } = pagination
 
@@ -119,24 +161,17 @@ function openCreateDialog() {
     status: 'active',
   }
   createVisible.value = true
+  setTimeout(() => {
+    createFormRef.value?.clearValidate()
+  })
 }
 
 async function createUser() {
+  const valid = await createFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
   const username = createForm.value.username.trim()
   const password = createForm.value.password.trim()
-  if (!validateUsername(username)) {
-    ElMessage.warning('用户名需为 4-20 位字母、数字或下划线')
-    return
-  }
-  if (!validatePassword(password)) {
-    ElMessage.warning('密码至少 6 位')
-    return
-  }
-  if (password !== createForm.value.confirmPassword.trim()) {
-    ElMessage.warning('两次输入的密码不一致')
-    return
-  }
-
   const payload: AdminUserCreatePayload = {
     username,
     password,
@@ -340,33 +375,39 @@ onMounted(() => {
       </div>
     </section>
 
-    <el-dialog v-model="createVisible" title="添加用户" width="560px">
-      <el-form class="create-form" label-position="top">
-        <el-form-item label="用户名">
+    <el-dialog v-model="createVisible" title="添加用户" width="640px">
+      <el-form
+        ref="createFormRef"
+        class="create-form"
+        :model="createForm"
+        :rules="createRules"
+        label-position="top"
+      >
+        <el-form-item label="用户名" prop="username">
           <el-input v-model="createForm.username" placeholder="4-20 位字母、数字或下划线" />
         </el-form-item>
-        <el-form-item label="密码">
+        <el-form-item label="密码" prop="password">
           <el-input v-model="createForm.password" type="password" placeholder="至少 6 位" show-password />
         </el-form-item>
-        <el-form-item label="确认密码">
+        <el-form-item label="确认密码" prop="confirmPassword">
           <el-input v-model="createForm.confirmPassword" type="password" placeholder="再次输入密码" show-password />
         </el-form-item>
-        <el-form-item label="昵称">
+        <el-form-item label="昵称" prop="nickname">
           <el-input v-model="createForm.nickname" placeholder="不填则自动生成" />
         </el-form-item>
-        <el-form-item label="手机号">
+        <el-form-item label="手机号" prop="phone">
           <el-input v-model="createForm.phone" placeholder="可选" />
         </el-form-item>
-        <el-form-item label="联系方式">
+        <el-form-item label="联系方式" prop="contact">
           <el-input v-model="createForm.contact" placeholder="可选" />
         </el-form-item>
-        <el-form-item label="角色">
+        <el-form-item label="角色" prop="role">
           <el-select v-model="createForm.role">
             <el-option label="用户" value="user" />
             <el-option label="超级管理员" value="admin" />
           </el-select>
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item label="状态" prop="status">
           <el-select v-model="createForm.status">
             <el-option label="已启用" value="active" />
             <el-option label="已停用" value="disabled" />

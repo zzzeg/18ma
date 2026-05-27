@@ -36,6 +36,32 @@ function fallbackDefaultNickname() {
   return `用户${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+function sendCreateUserError(res, error) {
+  const message = String(error?.message || '');
+  const parentCode = error?.parent?.code || error?.original?.code;
+  const parentMessage = String(error?.parent?.sqlMessage || error?.original?.sqlMessage || '');
+
+  if (error?.name === 'SequelizeUniqueConstraintError' || parentCode === 'ER_DUP_ENTRY') {
+    if (message.includes('username') || parentMessage.includes('username')) {
+      res.status(400).json({ error: '用户名已存在' });
+      return;
+    }
+    if (message.includes('phone') || parentMessage.includes('phone')) {
+      res.status(400).json({ error: '手机号已被其他用户占用' });
+      return;
+    }
+    res.status(400).json({ error: '用户信息已存在，请检查用户名或手机号' });
+    return;
+  }
+
+  if (parentCode === 'ER_BAD_FIELD_ERROR') {
+    res.status(500).json({ error: '数据库结构未更新，请重启后端服务完成表结构升级' });
+    return;
+  }
+
+  res.status(500).json({ error: '添加用户失败' });
+}
+
 function registerAdminUserRoutes({
   app,
   authenticateToken,
@@ -174,7 +200,7 @@ function registerAdminUserRoutes({
       res.status(201).json({ data: formatAdminUser(user) });
     } catch (error) {
       console.error('Admin user create error:', error);
-      res.status(500).json({ error: '添加用户失败' });
+      sendCreateUserError(res, error);
     }
   });
 
