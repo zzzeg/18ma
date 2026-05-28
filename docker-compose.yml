@@ -12,7 +12,11 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -20,9 +24,7 @@ services:
       - mysql_data:/var/lib/mysql
 
   api:
-    build:
-      context: ./node_server
-    container_name: 18ma-api
+    image: ghcr.io/zzzeg/18ma-api:latest
     restart: unless-stopped
     depends_on:
       mysql:
@@ -44,11 +46,7 @@ services:
       - "3000"
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
-    container_name: 18ma-frontend
+    image: ghcr.io/zzzeg/18ma-frontend:latest
     restart: unless-stopped
     depends_on:
       - api
